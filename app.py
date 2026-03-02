@@ -1313,6 +1313,57 @@ def crawl_status(job_id: str):
     return jsonify(job)
 
 
+@app.route("/health/sources", methods=["GET"])
+def health_sources():
+    run = request.args.get("run", "0") == "1"
+    timeout = int(request.args.get("timeout", "6"))
+    timeout = max(2, min(15, timeout))
+    limit = int(request.args.get("limit", str(len(SOURCES))))
+    limit = max(1, min(len(SOURCES), limit))
+
+    rows: list[dict] = []
+    summary = {"ok": 0, "fail": 0, "total": limit}
+    selected = list(SOURCES.values())[:limit]
+
+    if run:
+        headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
+        for source in selected:
+            status = "FAIL"
+            detail = ""
+            try:
+                resp = requests.get(source.feed_url, timeout=(5, timeout), headers=headers)
+                resp.raise_for_status()
+                parse_feed(resp.content, 1)
+                status = "OK"
+                detail = f"HTTP {resp.status_code}"
+            except Exception as exc:  # pragma: no cover
+                detail = exc.__class__.__name__
+
+            rows.append(
+                {
+                    "key": source.key,
+                    "language": source.language,
+                    "name": source.name,
+                    "feed_url": source.feed_url,
+                    "status": status,
+                    "detail": detail,
+                }
+            )
+            if status == "OK":
+                summary["ok"] += 1
+            else:
+                summary["fail"] += 1
+
+    return render_template(
+        "health_sources.html",
+        run=run,
+        timeout=timeout,
+        limit=limit,
+        rows=rows,
+        summary=summary,
+    )
+
+
 @app.route("/export", methods=["POST"])
 def export_excel():
     source_keys = [ALL_SOURCES_KEY, *list(SOURCES.keys())]
