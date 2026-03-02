@@ -1222,6 +1222,126 @@ SOURCES: dict[str, FeedSource] = {
         homepage="https://www.huanqiu.com/",
         source_type="web",
     ),
+    "kr_moe_press_web": FeedSource(
+        key="kr_moe_press_web",
+        language="한국어",
+        name="교육부 보도자료 (Web)",
+        feed_url="https://www.moe.go.kr/boardCnts/listRenew.do?boardID=294&boardSeq=0&lev=0&searchType=null&statusYN=W&page=1&s=moe&m=020402&opType=N",
+        homepage="https://www.moe.go.kr/",
+        source_type="web",
+    ),
+    "kr_mof_press_web": FeedSource(
+        key="kr_mof_press_web",
+        language="한국어",
+        name="기획재정부 보도자료 (Web)",
+        feed_url="https://www.moef.go.kr/nw/nes/detailNesDtaView.do?menuNo=4010100",
+        homepage="https://www.moef.go.kr/",
+        source_type="web",
+    ),
+    "kr_mss_press_web": FeedSource(
+        key="kr_mss_press_web",
+        language="한국어",
+        name="중소벤처기업부 보도자료 (Web)",
+        feed_url="https://www.mss.go.kr/site/smba/ex/bbs/List.do?cbIdx=86",
+        homepage="https://www.mss.go.kr/",
+        source_type="web",
+    ),
+    "kr_kma_notice_web": FeedSource(
+        key="kr_kma_notice_web",
+        language="한국어",
+        name="기상청 보도자료 (Web)",
+        feed_url="https://www.weather.go.kr/w/wnuri-rss.do",
+        homepage="https://www.weather.go.kr/",
+        source_type="web",
+    ),
+    "kr_yonhap_web": FeedSource(
+        key="kr_yonhap_web",
+        language="한국어",
+        name="연합뉴스 메인 (Web)",
+        feed_url="https://www.yna.co.kr/",
+        homepage="https://www.yna.co.kr/",
+        source_type="web",
+    ),
+    "jp_maff_press_web": FeedSource(
+        key="jp_maff_press_web",
+        language="日本語",
+        name="農林水産省 プレスリリース (Web)",
+        feed_url="https://www.maff.go.jp/j/press/",
+        homepage="https://www.maff.go.jp/",
+        source_type="web",
+    ),
+    "jp_mlitt_press_web": FeedSource(
+        key="jp_mlitt_press_web",
+        language="日本語",
+        name="国土交通省 報道発表資料 (Web)",
+        feed_url="https://www.mlit.go.jp/report/press/",
+        homepage="https://www.mlit.go.jp/",
+        source_type="web",
+    ),
+    "jp_soumu_press_web": FeedSource(
+        key="jp_soumu_press_web",
+        language="日本語",
+        name="総務省 報道資料 (Web)",
+        feed_url="https://www.soumu.go.jp/menu_news/s-news/",
+        homepage="https://www.soumu.go.jp/",
+        source_type="web",
+    ),
+    "jp_mext_press_web": FeedSource(
+        key="jp_mext_press_web",
+        language="日本語",
+        name="文部科学省 報道発表 (Web)",
+        feed_url="https://www.mext.go.jp/b_menu/houdou/index.htm",
+        homepage="https://www.mext.go.jp/",
+        source_type="web",
+    ),
+    "jp_jma_press_web": FeedSource(
+        key="jp_jma_press_web",
+        language="日本語",
+        name="気象庁 報道発表資料 (Web)",
+        feed_url="https://www.jma.go.jp/jma/press/index.html",
+        homepage="https://www.jma.go.jp/",
+        source_type="web",
+    ),
+    "zh_scio_web": FeedSource(
+        key="zh_scio_web",
+        language="中文",
+        name="国务院新闻办 发布会 (Web)",
+        feed_url="http://www.scio.gov.cn/32618/Document/",
+        homepage="http://www.scio.gov.cn/",
+        source_type="web",
+    ),
+    "zh_mot_cn_web": FeedSource(
+        key="zh_mot_cn_web",
+        language="中文",
+        name="交通运输部 新闻发布 (Web)",
+        feed_url="https://www.mot.gov.cn/jiaotongyaowen/",
+        homepage="https://www.mot.gov.cn/",
+        source_type="web",
+    ),
+    "zh_pbc_web": FeedSource(
+        key="zh_pbc_web",
+        language="中文",
+        name="中国人民银行 新闻发布 (Web)",
+        feed_url="http://www.pbc.gov.cn/goutongjiaoliu/113456/113469/index.html",
+        homepage="http://www.pbc.gov.cn/",
+        source_type="web",
+    ),
+    "zh_thepaper_web": FeedSource(
+        key="zh_thepaper_web",
+        language="中文",
+        name="澎湃新闻 (Web)",
+        feed_url="https://www.thepaper.cn/",
+        homepage="https://www.thepaper.cn/",
+        source_type="web",
+    ),
+    "zh_guancha_web": FeedSource(
+        key="zh_guancha_web",
+        language="中文",
+        name="观察者网 (Web)",
+        feed_url="https://www.guancha.cn/",
+        homepage="https://www.guancha.cn/",
+        source_type="web",
+    ),
     "sns_medium_ai_tag": FeedSource(
         key="sns_medium_ai_tag",
         language="English",
@@ -1506,6 +1626,36 @@ def resolve_list_selectors(source_key: str) -> tuple[str, ...]:
         return (".wgt-list a", ".list1 a", "a")
     if source_key.startswith("zh_huanqiu_web"):
         return (".listPicBox a", ".list a", "a")
+    if source_key.startswith("kr_moe_press_web"):
+        return (".boardList a", ".list a", "a")
+    if source_key.startswith("kr_mof_press_web"):
+        return (".board_list a", ".list_type a", "a")
+    if source_key.startswith("kr_mss_press_web"):
+        return (".board-list a", ".list a", "a")
+    if source_key.startswith("kr_kma_notice_web"):
+        return (".board_list a", ".news_list a", "a")
+    if source_key.startswith("kr_yonhap_web"):
+        return (".news-con a", ".story-list a", "a")
+    if source_key.startswith("jp_maff_press_web"):
+        return (".news-list a", "#contents a", "a")
+    if source_key.startswith("jp_mlitt_press_web"):
+        return (".list a", "#main a", "a")
+    if source_key.startswith("jp_soumu_press_web"):
+        return (".news_list a", "#contents a", "a")
+    if source_key.startswith("jp_mext_press_web"):
+        return (".list a", "#contents a", "a")
+    if source_key.startswith("jp_jma_press_web"):
+        return (".news-list a", "#contents a", "a")
+    if source_key.startswith("zh_scio_web"):
+        return (".list a", ".news-list a", "a")
+    if source_key.startswith("zh_mot_cn_web"):
+        return (".list a", ".xxgk_list a", "a")
+    if source_key.startswith("zh_pbc_web"):
+        return (".newslist a", ".list a", "a")
+    if source_key.startswith("zh_thepaper_web"):
+        return (".news_li a", ".index_news a", "a")
+    if source_key.startswith("zh_guancha_web"):
+        return (".list-item a", ".module-list a", "a")
     return ("article a", "main a", "a")
 
 
