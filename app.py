@@ -69,17 +69,6 @@ SOURCES: dict[str, FeedSource] = {
         homepage="https://www3.nhk.or.jp/news/",
         sitemap_urls=("https://www3.nhk.or.jp/sitemap.xml",),
     ),
-    "jp_meti_news": FeedSource(
-        key="jp_meti_news",
-        language="日本語",
-        name="経済産業省 ニュースリリース (불안정 가능)",
-        feed_url="https://www.meti.go.jp/rss/news_release.xml",
-        homepage="https://www.meti.go.jp/english/press/index.html",
-        fallback_urls=(
-            "https://meti.go.jp/rss/news_release.xml",
-        ),
-        sitemap_urls=("https://www.meti.go.jp/sitemap.xml",),
-    ),
     "jp_mainichi_news": FeedSource(
         key="jp_mainichi_news",
         language="日本語",
@@ -136,6 +125,20 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://news.yahoo.co.jp/rss/topics/sports.xml",
         homepage="https://news.yahoo.co.jp/",
     ),
+    "jp_yahoo_life": FeedSource(
+        key="jp_yahoo_life",
+        language="日本語",
+        name="Yahoo!ニュース ライフRSS",
+        feed_url="https://news.yahoo.co.jp/rss/topics/life.xml",
+        homepage="https://news.yahoo.co.jp/",
+    ),
+    "jp_yahoo_local": FeedSource(
+        key="jp_yahoo_local",
+        language="日本語",
+        name="Yahoo!ニュース 地域RSS",
+        feed_url="https://news.yahoo.co.jp/rss/topics/local.xml",
+        homepage="https://news.yahoo.co.jp/",
+    ),
     "jp_nhk_society": FeedSource(
         key="jp_nhk_society",
         language="日本語",
@@ -169,6 +172,27 @@ SOURCES: dict[str, FeedSource] = {
         language="日本語",
         name="NHK NEWS 科学・文化RSS",
         feed_url="https://www3.nhk.or.jp/rss/news/cat7.xml",
+        homepage="https://www3.nhk.or.jp/news/",
+    ),
+    "jp_nhk_life": FeedSource(
+        key="jp_nhk_life",
+        language="日本語",
+        name="NHK NEWS 生活・医療RSS",
+        feed_url="https://www3.nhk.or.jp/rss/news/cat2.xml",
+        homepage="https://www3.nhk.or.jp/news/",
+    ),
+    "jp_nhk_local": FeedSource(
+        key="jp_nhk_local",
+        language="日本語",
+        name="NHK NEWS 地域RSS",
+        feed_url="https://www3.nhk.or.jp/rss/news/cat3.xml",
+        homepage="https://www3.nhk.or.jp/news/",
+    ),
+    "jp_nhk_sports": FeedSource(
+        key="jp_nhk_sports",
+        language="日本語",
+        name="NHK NEWS スポーツRSS",
+        feed_url="https://www3.nhk.or.jp/rss/news/cat8.xml",
         homepage="https://www3.nhk.or.jp/news/",
     ),
     "en_nasa_news": FeedSource(
@@ -214,6 +238,34 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://feeds.bbci.co.uk/news/world/middle_east/rss.xml",
         homepage="https://www.bbc.com/news/world/middle_east",
     ),
+    "en_bbc_africa": FeedSource(
+        key="en_bbc_africa",
+        language="English",
+        name="BBC Africa RSS",
+        feed_url="https://feeds.bbci.co.uk/news/world/africa/rss.xml",
+        homepage="https://www.bbc.com/news/world/africa",
+    ),
+    "en_bbc_latin_america": FeedSource(
+        key="en_bbc_latin_america",
+        language="English",
+        name="BBC Latin America RSS",
+        feed_url="https://feeds.bbci.co.uk/news/world/latin_america/rss.xml",
+        homepage="https://www.bbc.com/news/world/latin_america",
+    ),
+    "en_bbc_uk": FeedSource(
+        key="en_bbc_uk",
+        language="English",
+        name="BBC UK RSS",
+        feed_url="https://feeds.bbci.co.uk/news/uk/rss.xml",
+        homepage="https://www.bbc.com/news/uk",
+    ),
+    "en_bbc_entertainment": FeedSource(
+        key="en_bbc_entertainment",
+        language="English",
+        name="BBC Entertainment & Arts RSS",
+        feed_url="https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+        homepage="https://www.bbc.com/news/entertainment_and_arts",
+    ),
     "en_nyt_world": FeedSource(
         key="en_nyt_world",
         language="English",
@@ -242,6 +294,34 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://rss.nytimes.com/services/xml/rss/nyt/Science.xml",
         homepage="https://www.nytimes.com/section/science",
     ),
+    "en_nyt_health": FeedSource(
+        key="en_nyt_health",
+        language="English",
+        name="NYTimes Health RSS",
+        feed_url="https://rss.nytimes.com/services/xml/rss/nyt/Health.xml",
+        homepage="https://www.nytimes.com/section/health",
+    ),
+    "en_nyt_sports": FeedSource(
+        key="en_nyt_sports",
+        language="English",
+        name="NYTimes Sports RSS",
+        feed_url="https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml",
+        homepage="https://www.nytimes.com/section/sports",
+    ),
+    "en_nyt_arts": FeedSource(
+        key="en_nyt_arts",
+        language="English",
+        name="NYTimes Arts RSS",
+        feed_url="https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml",
+        homepage="https://www.nytimes.com/section/arts",
+    ),
+    "en_nyt_travel": FeedSource(
+        key="en_nyt_travel",
+        language="English",
+        name="NYTimes Travel RSS",
+        feed_url="https://rss.nytimes.com/services/xml/rss/nyt/Travel.xml",
+        homepage="https://www.nytimes.com/section/travel",
+    ),
     "en_guardian_world": FeedSource(
         key="en_guardian_world",
         language="English",
@@ -269,6 +349,27 @@ SOURCES: dict[str, FeedSource] = {
         name="The Guardian Science RSS",
         feed_url="https://www.theguardian.com/science/rss",
         homepage="https://www.theguardian.com/science",
+    ),
+    "en_guardian_environment": FeedSource(
+        key="en_guardian_environment",
+        language="English",
+        name="The Guardian Environment RSS",
+        feed_url="https://www.theguardian.com/environment/rss",
+        homepage="https://www.theguardian.com/environment",
+    ),
+    "en_guardian_culture": FeedSource(
+        key="en_guardian_culture",
+        language="English",
+        name="The Guardian Culture RSS",
+        feed_url="https://www.theguardian.com/culture/rss",
+        homepage="https://www.theguardian.com/culture",
+    ),
+    "en_guardian_media": FeedSource(
+        key="en_guardian_media",
+        language="English",
+        name="The Guardian Media RSS",
+        feed_url="https://www.theguardian.com/media/rss",
+        homepage="https://www.theguardian.com/media",
     ),
     "en_npr_world": FeedSource(
         key="en_npr_world",
@@ -304,20 +405,6 @@ SOURCES: dict[str, FeedSource] = {
         name="연합뉴스 RSS",
         feed_url="https://www.yna.co.kr/rss/news.xml",
         homepage="https://www.yna.co.kr/",
-    ),
-    "kr_kbs_news": FeedSource(
-        key="kr_kbs_news",
-        language="한국어",
-        name="KBS 뉴스 RSS",
-        feed_url="https://news.kbs.co.kr/rss/rss.xml",
-        homepage="https://news.kbs.co.kr/",
-    ),
-    "kr_mbc_news": FeedSource(
-        key="kr_mbc_news",
-        language="한국어",
-        name="MBC 뉴스 RSS",
-        feed_url="https://imnews.imbc.com/rss/news/news_00.xml",
-        homepage="https://imnews.imbc.com/",
     ),
     "kr_sbs_news": FeedSource(
         key="kr_sbs_news",
@@ -382,6 +469,13 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://feeds.bbci.co.uk/zhongwen/simp/rss.xml",
         homepage="https://www.bbc.com/zhongwen/simp",
     ),
+    "zh_bbc_traditional": FeedSource(
+        key="zh_bbc_traditional",
+        language="中文",
+        name="BBC 中文繁體 RSS",
+        feed_url="https://feeds.bbci.co.uk/zhongwen/trad/rss.xml",
+        homepage="https://www.bbc.com/zhongwen/trad",
+    ),
     "zh_wikinews": FeedSource(
         key="zh_wikinews",
         language="中文",
@@ -410,13 +504,6 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://tech.kakao.com/feed/",
         homepage="https://tech.kakao.com/blog/",
     ),
-    "kr_woowahan_tech": FeedSource(
-        key="kr_woowahan_tech",
-        language="한국어",
-        name="우아한형제들 기술블로그 RSS",
-        feed_url="https://techblog.woowahan.com/feed/",
-        homepage="https://techblog.woowahan.com/",
-    ),
     "kr_ruliweb_dev": FeedSource(
         key="kr_ruliweb_dev",
         language="한국어",
@@ -430,13 +517,6 @@ SOURCES: dict[str, FeedSource] = {
         name="Qiita 人気記事 Atom",
         feed_url="https://qiita.com/popular-items/feed.atom",
         homepage="https://qiita.com/",
-    ),
-    "jp_qiita_trend": FeedSource(
-        key="jp_qiita_trend",
-        language="日本語",
-        name="Qiita トレンド Atom",
-        feed_url="https://qiita.com/trend/feed.atom",
-        homepage="https://qiita.com/trend",
     ),
     "jp_classmethod_dev": FeedSource(
         key="jp_classmethod_dev",
@@ -459,6 +539,27 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://export.arxiv.org/rss/cs.AI",
         homepage="https://arxiv.org/list/cs.AI/recent",
     ),
+    "en_arxiv_cs_lg": FeedSource(
+        key="en_arxiv_cs_lg",
+        language="English",
+        name="arXiv cs.LG RSS",
+        feed_url="https://export.arxiv.org/rss/cs.LG",
+        homepage="https://arxiv.org/list/cs.LG/recent",
+    ),
+    "en_arxiv_cs_cl": FeedSource(
+        key="en_arxiv_cs_cl",
+        language="English",
+        name="arXiv cs.CL RSS",
+        feed_url="https://export.arxiv.org/rss/cs.CL",
+        homepage="https://arxiv.org/list/cs.CL/recent",
+    ),
+    "en_arxiv_stat_ml": FeedSource(
+        key="en_arxiv_stat_ml",
+        language="English",
+        name="arXiv stat.ML RSS",
+        feed_url="https://export.arxiv.org/rss/stat.ML",
+        homepage="https://arxiv.org/list/stat.ML/recent",
+    ),
     "en_hn_newest": FeedSource(
         key="en_hn_newest",
         language="English",
@@ -479,13 +580,6 @@ SOURCES: dict[str, FeedSource] = {
         name="GitHub Blog RSS",
         feed_url="https://github.blog/feed/",
         homepage="https://github.blog/",
-    ),
-    "zh_sspai": FeedSource(
-        key="zh_sspai",
-        language="中文",
-        name="少数派 RSS",
-        feed_url="https://sspai.com/feed",
-        homepage="https://sspai.com/",
     ),
     "zh_ruanyifeng": FeedSource(
         key="zh_ruanyifeng",
@@ -508,19 +602,23 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://www.ithome.com/rss/",
         homepage="https://www.ithome.com/",
     ),
+    "zh_cna_top": FeedSource(
+        key="zh_cna_top",
+        language="中文",
+        name="中央社 即時新聞 RSS",
+        feed_url="https://www.cna.com.tw/rss/aall.xml",
+        homepage="https://www.cna.com.tw/",
+    ),
 }
 
 ARTICLE_SELECTORS: dict[str, tuple[str, ...]] = {
     "kr_korea_policy": ("#newsView p", ".article_txt p", ".view_cont p", "article p"),
     "kr_yna_news": ("#articleWrap p", ".story-news p", "article p"),
-    "kr_kbs_news": ("#cont_newstext p", ".detail-body p", "article p"),
-    "kr_mbc_news": ("#newsContent p", ".news_end p", "article p"),
     "kr_sbs_news": (".main_text p", "#container p", "article p"),
     "kr_sbs_politics": (".main_text p", "#container p", "article p"),
     "kr_sbs_economy": (".main_text p", "#container p", "article p"),
     "kr_sbs_world": (".main_text p", "#container p", "article p"),
     "jp_nhk_news": (".content--detail-body", ".module--article-body", "article", "main"),
-    "jp_meti_news": ("#main", ".main", ".container", "article", "main"),
     "jp_mainichi_news": (".articledetail-body", ".article-body", "article", "main"),
     "jp_yahoo_news": ("article", "main article", "main", "[class*='article']"),
     "jp_nhk_society": (".content--detail-body", ".module--article-body", "article", "main"),
@@ -680,8 +778,6 @@ def collect_archive_items(source: FeedSource, limit: int) -> list[dict]:
                 urls = [u for u in urls if "/news/html/" in u]
             elif source.key.startswith("jp_nhk_"):
                 urls = [u for u in urls if "/news/html/" in u]
-            elif source.key == "jp_meti_news":
-                urls = [u for u in urls if "/press/" in u or "/policy/" in u]
             elif source.key == "en_nasa_news":
                 urls = [u for u in urls if "/news-release/" in u or "/news/" in u]
             elif source.key.startswith("en_bbc_"):
@@ -813,7 +909,7 @@ def resolve_selectors(source_key: str) -> tuple[str, ...]:
         return ("#mw-content-text", "article", "main")
     if source_key.startswith("zh_dw_"):
         return ("article", "main", ".rich-text")
-    if source_key.startswith("kr_naver_d2") or source_key.startswith("kr_kakao_tech") or source_key.startswith("kr_woowahan_tech"):
+    if source_key.startswith("kr_naver_d2") or source_key.startswith("kr_kakao_tech"):
         return ("article", ".entry-content", ".post-content", "main")
     if source_key.startswith("kr_ruliweb_"):
         return ("#board_read", ".view_content", "article", "main")
@@ -827,7 +923,7 @@ def resolve_selectors(source_key: str) -> tuple[str, ...]:
         return ("main", "body")
     if source_key.startswith("en_stackoverflow_") or source_key.startswith("en_github_blog"):
         return ("article", ".post-content", "main")
-    if source_key.startswith("zh_sspai") or source_key.startswith("zh_ruanyifeng") or source_key.startswith("zh_infoq") or source_key.startswith("zh_ithome"):
+    if source_key.startswith("zh_ruanyifeng") or source_key.startswith("zh_infoq") or source_key.startswith("zh_ithome"):
         return ("article", ".article-content", ".post-content", "main")
     return ARTICLE_SELECTORS.get(source_key, ("article", "main", "p"))
 
