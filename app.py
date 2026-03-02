@@ -9,6 +9,10 @@ from datetime import datetime, timezone
 from html import unescape
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
+try:
+    from bs4 import BeautifulSoup
+except ImportError:  # pragma: no cover
+    BeautifulSoup = None
 from openpyxl import Workbook
 import requests
 from flask import Flask, render_template, request, send_file
@@ -62,6 +66,13 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://www.nasa.gov/news-release/feed/",
         homepage="https://www.nasa.gov/news/all-news/",
     ),
+}
+
+ARTICLE_SELECTORS: dict[str, tuple[str, ...]] = {
+    "kr_korea_policy": ("#newsView p", ".article_txt p", ".view_cont p", "article p"),
+    "jp_nhk_news": (".content--detail-body p", ".module--article-body p", "article p"),
+    "jp_meti_news": ("#main p", ".main p", ".container p", "article p"),
+    "en_nasa_news": (".entry-content p", ".wysiwyg p", "article p"),
 }
 
 
@@ -214,8 +225,72 @@ def filter_by_keyword(items: list[dict], keyword: str) -> list[dict]:
     return result
 
 
+def extract_article_text(source_key: str, html: bytes | str) -> str:
+    if BeautifulSoup is None:
+        if isinstance(html, bytes):
+            text = html.decode("utf-8", errors="ignore")
+        else:
+            text = html
+        return clean_text(text)[:5000]
+
+    soup = BeautifulSoup(html, "html.parser")
+    selectors = ARTICLE_SELECTORS.get(source_key, ("article p", "main p", "p"))
+
+    texts: list[str] = []
+    for selector in selectors:
+        elements = soup.select(selector)
+        for elem in elements:
+            text = clean_text(elem.get_text(" ", strip=True))
+            if len(text) >= 30:
+                texts.append(text)
+        if len(texts) >= 4:
+            break
+
+    if not texts:
+        for tag in soup(["script", "style", "noscript"]):
+            tag.decompose()
+        body = soup.find("body")
+        if body:
+            text = clean_text(body.get_text(" ", strip=True))
+            if len(text) >= 40:
+                texts.append(text)
+
+    merged = clean_text(" ".join(texts))
+    return merged[:5000]
+
+
+def fetch_article_body(source_key: str, link: str) -> str:
+    if not link:
+        return ""
+    headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
+    try:
+        response = requests.get(link, timeout=(8, TIMEOUT_SECONDS), headers=headers)
+        response.raise_for_status()
+        return extract_article_text(source_key, response.content)
+    except requests.RequestException:
+        return ""
+
+
+def enrich_with_article_bodies(items: list[dict], max_items: int = 40) -> list[dict]:
+    if not items:
+        return items
+    capped = min(len(items), max_items)
+    for idx in range(capped):
+        item = items[idx]
+        source_key = item.get("source_key", "")
+        link = item.get("link", "")
+        body_text = fetch_article_body(source_key, link)
+        if body_text:
+            item["body_text"] = body_text
+    return items
+
+
 def collect_items(
-    selected_source: str, keyword: str, limit: int, history_pages: int = 1
+    selected_source: str,
+    keyword: str,
+    limit: int,
+    history_pages: int = 1,
+    parse_article_html: bool = False,
 ) -> tuple[list[dict], str]:
     # Pull more items before filtering to reduce "too few results" cases.
     fetch_limit = min(200, max(limit, limit * 5 if keyword else limit))
@@ -229,6 +304,7 @@ def collect_items(
                 for item in crawled:
                     item["source_name"] = source.name
                     item["language"] = source.language
+                    item["source_key"] = source.key
                 merged.extend(crawled)
             except requests.RequestException:
                 errors.append(source.name)
@@ -237,6 +313,8 @@ def collect_items(
 
         results = filter_by_keyword(merged, keyword)[:limit]
         if results:
+            if parse_article_html:
+                results = enrich_with_article_bodies(results)
             if errors:
                 return results, f"일부 소스 실패: {', '.join(errors[:2])}"
             return results, ""
@@ -254,6 +332,9 @@ def collect_items(
         for item in results:
             item["source_name"] = source.name
             item["language"] = source.language
+            item["source_key"] = source.key
+        if parse_article_html:
+            results = enrich_with_article_bodies(results)
         if not results:
             return [], "조건에 맞는 결과가 없습니다. 키워드/소스를 바꿔 보세요."
         return results, ""
@@ -270,12 +351,14 @@ def index():
     limit = 12
     keyword = ""
     history_pages = 3
+    parse_article_html = False
     error = ""
     results: list[dict] = []
 
     if request.method == "POST":
         selected_source = request.form.get("source", source_keys[0])
         keyword = (request.form.get("keyword", "") or "").strip()
+        parse_article_html = request.form.get("parse_article_html") == "1"
         try:
             history_pages = int(request.form.get("history_pages", "3"))
         except ValueError:
@@ -287,7 +370,13 @@ def index():
             limit = 12
         limit = max(1, min(200, limit))
 
-        results, error = collect_items(selected_source, keyword, limit, history_pages)
+        results, error = collect_items(
+            selected_source,
+            keyword,
+            limit,
+            history_pages,
+            parse_article_html=parse_article_html,
+        )
 
     return render_template(
         "index.html",
@@ -296,6 +385,7 @@ def index():
         limit=limit,
         keyword=keyword,
         history_pages=history_pages,
+        parse_article_html=parse_article_html,
         error=error,
         results=results,
     )
@@ -306,6 +396,7 @@ def export_excel():
     source_keys = [ALL_SOURCES_KEY, *list(SOURCES.keys())]
     selected_source = request.form.get("source", source_keys[0])
     keyword = (request.form.get("keyword", "") or "").strip()
+    parse_article_html = request.form.get("parse_article_html") == "1"
     try:
         history_pages = int(request.form.get("history_pages", "3"))
     except ValueError:
@@ -318,7 +409,13 @@ def export_excel():
         limit = 12
     limit = max(1, min(200, limit))
 
-    results, error = collect_items(selected_source, keyword, limit, history_pages)
+    results, error = collect_items(
+        selected_source,
+        keyword,
+        limit,
+        history_pages,
+        parse_article_html=parse_article_html,
+    )
     if error:
         return render_template(
             "index.html",
@@ -327,6 +424,7 @@ def export_excel():
             limit=limit,
             keyword=keyword,
             history_pages=history_pages,
+            parse_article_html=parse_article_html,
             error=error,
             results=[],
         )
@@ -334,7 +432,18 @@ def export_excel():
     wb = Workbook()
     ws = wb.active
     ws.title = "news"
-    ws.append(["language", "source", "title", "published", "summary", "link", "keyword"])
+    ws.append(
+        [
+            "language",
+            "source",
+            "title",
+            "published",
+            "summary",
+            "body_text",
+            "link",
+            "keyword",
+        ]
+    )
 
     for item in results:
         source_name = item.get("source_name", "")
@@ -350,6 +459,7 @@ def export_excel():
                 item.get("title", ""),
                 item.get("published", ""),
                 item.get("summary", ""),
+                item.get("body_text", ""),
                 item.get("link", ""),
                 keyword,
             ]
