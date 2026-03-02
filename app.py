@@ -231,7 +231,7 @@ def extract_article_text(source_key: str, html: bytes | str) -> str:
             text = html.decode("utf-8", errors="ignore")
         else:
             text = html
-        return clean_text(text)[:5000]
+        return clean_text(text)[:50000]
 
     soup = BeautifulSoup(html, "html.parser")
     selectors = ARTICLE_SELECTORS.get(source_key, ("article p", "main p", "p"))
@@ -256,7 +256,7 @@ def extract_article_text(source_key: str, html: bytes | str) -> str:
                 texts.append(text)
 
     merged = clean_text(" ".join(texts))
-    return merged[:5000]
+    return merged[:50000]
 
 
 def fetch_article_body(source_key: str, link: str) -> str:
