@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gov Multilingual News Crawler</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Gov Multilingual News Crawler</h1>
+      <p class="lead">
+        비교적 크롤링 정책이 명확한 공공/정부 뉴스 RSS·Atom 소스를 대상으로 다국어 수집합니다.
+      </p>
+
+      <form method="post" class="panel form-grid">
+        <label>
+          언어
+          <select name="language">
+            {% for lang_key, lang_label in language_options %}
+            <option value="{{ lang_key }}" {% if lang_key == selected_language %}selected{% endif %}>
+              {{ lang_label }}
+            </option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>
+          뉴스 소스
+          <select name="source">
+            <option value="all_sources" {% if selected_source == 'all_sources' %}selected{% endif %}>
+              [전체] KR + JP + EN 통합
+            </option>
+            {% for key, source in sources.items() %}
+            <option value="{{ key }}" {% if key == selected_source %}selected{% endif %}>
+              [{{ source.language }}] {{ source.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>
+          키워드 필터 (선택)
+          <input type="text" name="keyword" value="{{ keyword }}" placeholder="예: climate, 経済, 정책" />
+        </label>
+
+        <label>
+          수집 개수 (1-200)
+          <input type="number" name="limit" min="1" max="200" value="{{ limit }}" />
+        </label>
+
+        <label>
+          과거 페이지 수 (1-10)
+          <input type="number" name="history_pages" min="1" max="10" value="{{ history_pages }}" />
+        </label>
+
+        <label class="checkline">
+          <input type="checkbox" name="include_archive" value="1" {% if include_archive %}checked{% endif %} />
+          과거 뉴스 아카이브 포함 수집 (느림)
+        </label>
+
+        <label class="checkline">
+          <input type="checkbox" name="parse_article_html" value="1" {% if parse_article_html %}checked{% endif %} />
+          뉴스 페이지 본문 HTML 직접 파싱
+        </label>
+
+        <button type="submit">크롤링 실행</button>
+        <button type="submit" formaction="/export" class="secondary">엑셀 내보내기</button>
+      </form>
+
+      {% if error %}
+      <div class="error panel">{{ error }}</div>
+      {% endif %}
+
+      <section class="results">
+        {% for item in results %}
+        <article class="panel card">
+          <h2>{{ item.title }}</h2>
+          {% if item.published %}
+          <p class="meta">{{ item.published }}</p>
+          {% endif %}
+          {% if item.summary %}
+          <p>{{ item.summary }}</p>
+          {% endif %}
+          {% if item.body_text %}
+          <p class="body">{{ item.body_text }}</p>
+          {% endif %}
+          {% if item.link %}
+          <a href="{{ item.link }}" target="_blank" rel="noreferrer">원문 보기</a>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </section>
+
+      <section class="panel note">
+        <h3>소스 정보</h3>
+        <ul>
+          {% for key, source in sources.items() %}
+          <li>
+            <strong>[{{ source.language }}] {{ source.name }}</strong>
+            <a href="{{ source.feed_url }}" target="_blank" rel="noreferrer">Feed</a>
+            <a href="{{ source.homepage }}" target="_blank" rel="noreferrer">Site</a>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>
