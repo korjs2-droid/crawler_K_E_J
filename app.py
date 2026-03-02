@@ -437,7 +437,28 @@ def clean_text(raw: str | None) -> str:
 
 def parse_feed(xml_data: bytes | str, limit: int) -> list[dict]:
     # Parse raw XML bytes so parser can honor feed-declared encoding.
-    root = ET.fromstring(xml_data)
+    try:
+        root = ET.fromstring(xml_data)
+    except ValueError as exc:
+        # Expat in stdlib may reject some multi-byte legacy encodings (e.g., GB2312).
+        if not isinstance(xml_data, bytes):
+            raise
+        head = xml_data[:200].decode("ascii", errors="ignore")
+        match = re.search(r'encoding=["\\\']([A-Za-z0-9_-]+)["\\\']', head)
+        declared = match.group(1) if match else ""
+        candidates = [declared, "utf-8", "gb18030", "big5"]
+        last_error: Exception | None = exc
+        for enc in candidates:
+            if not enc:
+                continue
+            try:
+                decoded = xml_data.decode(enc, errors="strict")
+                root = ET.fromstring(decoded)
+                break
+            except Exception as dec_exc:  # pragma: no cover
+                last_error = dec_exc
+        else:
+            raise last_error if last_error else exc
 
     rss_items = root.findall("./channel/item")
     if rss_items:
