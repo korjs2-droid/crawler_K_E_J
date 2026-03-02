@@ -1,0 +1,133 @@
+:root {
+  --bg: #f6f7f2;
+  --panel: #ffffff;
+  --ink: #1f2522;
+  --muted: #5a645d;
+  --line: #d7ddd7;
+  --accent: #1f6a43;
+  --danger: #9f2a2a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Noto Sans KR", "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, #eef3ea 0%, var(--bg) 45%, #eef0f5 100%);
+}
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1.6rem 1rem 3rem;
+}
+
+h1 {
+  margin: 0;
+}
+
+.lead {
+  margin-top: 0.6rem;
+  color: var(--muted);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.form-grid {
+  margin-top: 1rem;
+  padding: 1rem;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  align-items: end;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+}
+
+input,
+select,
+button {
+  font: inherit;
+  padding: 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+button {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.results {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.card {
+  padding: 0.95rem;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.meta {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.card p {
+  margin: 0.65rem 0;
+  line-height: 1.45;
+}
+
+.card a,
+.note a {
+  color: var(--accent);
+  font-weight: 600;
+  margin-right: 0.75rem;
+}
+
+.error {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.note {
+  margin-top: 1rem;
+  padding: 0.9rem;
+}
+
+.note h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.note ul {
+  margin: 0.7rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.note li {
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+}
