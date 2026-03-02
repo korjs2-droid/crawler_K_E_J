@@ -1115,6 +1115,113 @@ SOURCES: dict[str, FeedSource] = {
         homepage="http://www.stats.gov.cn/",
         source_type="web",
     ),
+    "kr_donga_economy": FeedSource(
+        key="kr_donga_economy",
+        language="한국어",
+        name="동아일보 경제 RSS",
+        feed_url="https://rss.donga.com/economy.xml",
+        homepage="https://www.donga.com/",
+    ),
+    "kr_donga_international": FeedSource(
+        key="kr_donga_international",
+        language="한국어",
+        name="동아일보 국제 RSS",
+        feed_url="https://rss.donga.com/international.xml",
+        homepage="https://www.donga.com/",
+    ),
+    "kr_donga_national": FeedSource(
+        key="kr_donga_national",
+        language="한국어",
+        name="동아일보 사회 RSS",
+        feed_url="https://rss.donga.com/national.xml",
+        homepage="https://www.donga.com/",
+    ),
+    "kr_donga_sports": FeedSource(
+        key="kr_donga_sports",
+        language="한국어",
+        name="동아일보 스포츠 RSS",
+        feed_url="https://rss.donga.com/sports.xml",
+        homepage="https://www.donga.com/",
+    ),
+    "kr_donga_entertainment": FeedSource(
+        key="kr_donga_entertainment",
+        language="한국어",
+        name="동아일보 연예 RSS",
+        feed_url="https://rss.donga.com/entertainment.xml",
+        homepage="https://www.donga.com/",
+    ),
+    "jp_itmedia_news": FeedSource(
+        key="jp_itmedia_news",
+        language="日本語",
+        name="ITmedia NEWS 速報 RSS",
+        feed_url="https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml",
+        homepage="https://www.itmedia.co.jp/news/",
+    ),
+    "jp_itmedia_business": FeedSource(
+        key="jp_itmedia_business",
+        language="日本語",
+        name="ITmedia NEWS ビジネス RSS",
+        feed_url="https://rss.itmedia.co.jp/rss/2.0/news_business.xml",
+        homepage="https://www.itmedia.co.jp/news/",
+    ),
+    "jp_itmedia_domestic": FeedSource(
+        key="jp_itmedia_domestic",
+        language="日本語",
+        name="ITmedia NEWS 国内 RSS",
+        feed_url="https://rss.itmedia.co.jp/rss/2.0/news_domestic.xml",
+        homepage="https://www.itmedia.co.jp/news/",
+    ),
+    "jp_cnet_japan": FeedSource(
+        key="jp_cnet_japan",
+        language="日本語",
+        name="CNET Japan RSS",
+        feed_url="https://japan.cnet.com/rss/index.rdf",
+        homepage="https://japan.cnet.com/",
+    ),
+    "jp_gigazine": FeedSource(
+        key="jp_gigazine",
+        language="日本語",
+        name="GIGAZINE RSS",
+        feed_url="https://gigazine.net/news/rss_2.0/",
+        homepage="https://gigazine.net/",
+    ),
+    "zh_govhk_education": FeedSource(
+        key="zh_govhk_education",
+        language="中文",
+        name="GovHK Education RSS",
+        feed_url="https://www.news.gov.hk/en/categories/education/html/articlelist.rss.xml",
+        homepage="https://www.news.gov.hk/",
+    ),
+    "zh_govhk_environment": FeedSource(
+        key="zh_govhk_environment",
+        language="中文",
+        name="GovHK Environment RSS",
+        feed_url="https://www.news.gov.hk/en/categories/environment/html/articlelist.rss.xml",
+        homepage="https://www.news.gov.hk/",
+    ),
+    "zh_govhk_law": FeedSource(
+        key="zh_govhk_law",
+        language="中文",
+        name="GovHK Law & Order RSS",
+        feed_url="https://www.news.gov.hk/en/categories/law/html/articlelist.rss.xml",
+        homepage="https://www.news.gov.hk/",
+    ),
+    "zh_people_cn_web": FeedSource(
+        key="zh_people_cn_web",
+        language="中文",
+        name="人民网 要闻 (Web)",
+        feed_url="http://www.people.com.cn/",
+        homepage="http://www.people.com.cn/",
+        source_type="web",
+    ),
+    "zh_huanqiu_web": FeedSource(
+        key="zh_huanqiu_web",
+        language="中文",
+        name="环球网 要闻 (Web)",
+        feed_url="https://www.huanqiu.com/",
+        homepage="https://www.huanqiu.com/",
+        source_type="web",
+    ),
     "sns_medium_ai_tag": FeedSource(
         key="sns_medium_ai_tag",
         language="English",
@@ -1395,6 +1502,10 @@ def resolve_list_selectors(source_key: str) -> tuple[str, ...]:
         return (".list a", ".wzlist a", "main a", "a")
     if source_key.startswith("zh_stats_cn_web"):
         return (".list a", ".center_list a", "main a", "a")
+    if source_key.startswith("zh_people_cn_web"):
+        return (".wgt-list a", ".list1 a", "a")
+    if source_key.startswith("zh_huanqiu_web"):
+        return (".listPicBox a", ".list a", "a")
     return ("article a", "main a", "a")
 
 
@@ -1686,6 +1797,14 @@ def resolve_selectors(source_key: str) -> tuple[str, ...]:
         return ("article", ".post-content", "main")
     if source_key.startswith("zh_ruanyifeng") or source_key.startswith("zh_infoq") or source_key.startswith("zh_ithome"):
         return ("article", ".article-content", ".post-content", "main")
+    if source_key.startswith("jp_itmedia_"):
+        return (".colBoxInner", ".cmsBody", "article", "main")
+    if source_key.startswith("jp_cnet_"):
+        return (".article_body", ".itemBody", "article", "main")
+    if source_key.startswith("jp_gigazine"):
+        return (".cntimage-wrap", "#article", "article", "main")
+    if source_key.startswith("zh_people_cn_web") or source_key.startswith("zh_huanqiu_web"):
+        return ("article", ".content", ".article", "main")
     if source_key.startswith("sns_medium_"):
         return ("article", "main", ".section-content", ".pw-post-body-paragraph")
     if source_key.startswith("sns_mastodon_"):
