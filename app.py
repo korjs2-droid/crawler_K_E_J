@@ -1755,9 +1755,144 @@ def parse_sitemap_bundle(xml_data: bytes | str) -> tuple[list[str], list[str]]:
     return ([u for u in urls if u], [u for u in sitemap_urls if u])
 
 
+def is_same_domain(homepage: str, url: str) -> bool:
+    home_host = urlparse(homepage).netloc
+    target_host = urlparse(url).netloc
+    if not home_host or not target_host:
+        return False
+    return home_host in target_host or target_host in home_host
+
+
+def looks_like_article_url(url: str) -> bool:
+    path = (urlparse(url).path or "").lower()
+    if len(path) < 8:
+        return False
+    keys = (
+        "/news/",
+        "/article",
+        "/articles/",
+        "/press/",
+        "/release",
+        "/releases/",
+        "/story/",
+        "/stories/",
+        "/post/",
+        "/posts/",
+        "/view",
+    )
+    if any(k in path for k in keys):
+        return True
+    return "/20" in path
+
+
+def title_from_url(url: str) -> str:
+    path = urlparse(url).path.strip("/")
+    if not path:
+        return ""
+    tail = path.split("/")[-1]
+    tail = re.sub(r"\.[a-z0-9]+$", "", tail, flags=re.IGNORECASE)
+    tail = tail.replace("-", " ").replace("_", " ")
+    return clean_text(tail)[:180]
+
+
+def collect_web_archive_items(source: FeedSource, limit: int, deadline: float | None = None) -> list[dict]:
+    headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
+    candidates: list[dict] = []
+    seen_links: set[str] = set()
+
+    # 1) crawl deeper pages from listing source
+    for page in range(2, 11):
+        if deadline_exceeded(deadline):
+            break
+        page_url = build_paged_url(source.feed_url, page)
+        if page_url == source.feed_url:
+            continue
+        try:
+            resp = requests.get(page_url, timeout=(8, TIMEOUT_SECONDS), headers=headers)
+            resp.raise_for_status()
+            links = extract_links_from_list(source, resp.content, page_url)
+            for item in links:
+                link = item.get("link", "")
+                if not link or link in seen_links:
+                    continue
+                seen_links.add(link)
+                candidates.append(item)
+                if len(candidates) >= limit * 4:
+                    break
+        except requests.RequestException:
+            continue
+        if len(candidates) >= limit * 4:
+            break
+
+    # 2) fallback with sitemap/news-sitemap candidates
+    to_visit = list(source.sitemap_urls)
+    if not to_visit:
+        to_visit = [
+            urljoin(source.homepage, "/sitemap.xml"),
+            urljoin(source.homepage, "/sitemap_index.xml"),
+            urljoin(source.homepage, "/news-sitemap.xml"),
+        ]
+    visited: set[str] = set()
+    max_sitemaps = 16
+
+    while to_visit and len(visited) < max_sitemaps and len(candidates) < limit * 5:
+        if deadline_exceeded(deadline):
+            break
+        sitemap_url = to_visit.pop(0)
+        if sitemap_url in visited:
+            continue
+        visited.add(sitemap_url)
+        try:
+            resp = requests.get(sitemap_url, timeout=(8, TIMEOUT_SECONDS), headers=headers)
+            resp.raise_for_status()
+            urls, nested = parse_sitemap_bundle(resp.content)
+            for n in nested[:8]:
+                if n not in visited:
+                    to_visit.append(n)
+            for url in urls:
+                if not is_same_domain(source.homepage, url):
+                    continue
+                if not looks_like_article_url(url):
+                    continue
+                if url in seen_links:
+                    continue
+                seen_links.add(url)
+                candidates.append({"link": url, "title": title_from_url(url)})
+                if len(candidates) >= limit * 5:
+                    break
+        except (requests.RequestException, ET.ParseError):
+            continue
+
+    items: list[dict] = []
+    for cand in candidates:
+        if deadline_exceeded(deadline):
+            break
+        link = cand.get("link", "")
+        if not link:
+            continue
+        body = fetch_article_body(source.key, link)
+        if not body:
+            continue
+        items.append(
+            {
+                "title": cand.get("title", ""),
+                "link": link,
+                "published": "",
+                "summary": body[:280],
+                "body_text": body,
+                "source_name": source.name,
+                "language": source.language,
+                "source_key": source.key,
+            }
+        )
+        if len(items) >= limit:
+            break
+    return items
+
+
 def collect_archive_items(source: FeedSource, limit: int, deadline: float | None = None) -> list[dict]:
     if source.source_type == "web":
-        return []
+        return collect_web_archive_items(source, limit, deadline=deadline)
 
     headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
     candidates: list[str] = []
