@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from html import unescape
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from openpyxl import Workbook
 import requests
@@ -129,25 +130,73 @@ def parse_feed(xml_data: bytes | str, limit: int) -> list[dict]:
     return parsed
 
 
-def crawl_feed(source: FeedSource, limit: int) -> list[dict]:
+def build_paged_url(base_url: str, page_number: int) -> str:
+    if page_number <= 1:
+        return base_url
+    parsed = urlparse(base_url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    if "paged" in query:
+        query["paged"] = str(page_number)
+    else:
+        query["page"] = str(page_number)
+    return urlunparse(parsed._replace(query=urlencode(query)))
+
+
+def crawl_feed(source: FeedSource, limit: int, history_pages: int = 1) -> list[dict]:
     headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
     urls = (source.feed_url, *source.fallback_urls)
     errors: list[str] = []
+    collected: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    max_pages = max(1, min(10, history_pages))
 
     for url in urls:
-        for attempt in range(2):
-            try:
-                # Use separate connect/read timeout so slow feeds are more tolerant.
-                response = requests.get(url, timeout=(8, TIMEOUT_SECONDS), headers=headers)
-                response.raise_for_status()
-                return parse_feed(response.content, limit)
-            except (requests.Timeout, requests.ConnectionError) as exc:
-                errors.append(f"{url} ({exc.__class__.__name__})")
-                if attempt == 0:
+        for page_number in range(1, max_pages + 1):
+            paged_url = build_paged_url(url, page_number)
+            page_items: list[dict] = []
+            page_ok = False
+            for attempt in range(2):
+                try:
+                    # Use separate connect/read timeout so slow feeds are more tolerant.
+                    response = requests.get(
+                        paged_url,
+                        timeout=(8, TIMEOUT_SECONDS),
+                        headers=headers,
+                    )
+                    response.raise_for_status()
+                    page_items = parse_feed(response.content, limit)
+                    page_ok = True
+                    break
+                except (requests.Timeout, requests.ConnectionError) as exc:
+                    errors.append(f"{paged_url} ({exc.__class__.__name__})")
+                    if attempt == 0:
+                        continue
+                except (requests.HTTPError, ET.ParseError) as exc:
+                    errors.append(f"{paged_url} ({exc.__class__.__name__})")
+                    break
+
+            if not page_ok:
+                if page_number == 1:
+                    break
+                continue
+
+            added = 0
+            for item in page_items:
+                key = (item.get("link", ""), item.get("title", ""))
+                if key in seen:
                     continue
-            except (requests.HTTPError, ET.ParseError) as exc:
-                errors.append(f"{url} ({exc.__class__.__name__})")
+                seen.add(key)
+                collected.append(item)
+                added += 1
+                if len(collected) >= limit:
+                    return collected[:limit]
+
+            # Stop early when next page does not add new data.
+            if added == 0:
                 break
+
+        if collected:
+            return collected[:limit]
 
     short_errors = ", ".join(errors[:2]) if errors else "unknown"
     raise requests.RequestException(f"소스 접속 실패(재시도 완료): {short_errors}")
@@ -165,7 +214,9 @@ def filter_by_keyword(items: list[dict], keyword: str) -> list[dict]:
     return result
 
 
-def collect_items(selected_source: str, keyword: str, limit: int) -> tuple[list[dict], str]:
+def collect_items(
+    selected_source: str, keyword: str, limit: int, history_pages: int = 1
+) -> tuple[list[dict], str]:
     # Pull more items before filtering to reduce "too few results" cases.
     fetch_limit = min(200, max(limit, limit * 5 if keyword else limit))
 
@@ -174,7 +225,7 @@ def collect_items(selected_source: str, keyword: str, limit: int) -> tuple[list[
         errors: list[str] = []
         for source in SOURCES.values():
             try:
-                crawled = crawl_feed(source, fetch_limit)
+                crawled = crawl_feed(source, fetch_limit, history_pages=history_pages)
                 for item in crawled:
                     item["source_name"] = source.name
                     item["language"] = source.language
@@ -198,7 +249,7 @@ def collect_items(selected_source: str, keyword: str, limit: int) -> tuple[list[
         return [], "지원하지 않는 소스입니다."
 
     try:
-        crawled = crawl_feed(source, fetch_limit)
+        crawled = crawl_feed(source, fetch_limit, history_pages=history_pages)
         results = filter_by_keyword(crawled, keyword)[:limit]
         for item in results:
             item["source_name"] = source.name
@@ -218,6 +269,7 @@ def index():
     selected_source = source_keys[0]
     limit = 12
     keyword = ""
+    history_pages = 3
     error = ""
     results: list[dict] = []
 
@@ -225,12 +277,17 @@ def index():
         selected_source = request.form.get("source", source_keys[0])
         keyword = (request.form.get("keyword", "") or "").strip()
         try:
+            history_pages = int(request.form.get("history_pages", "3"))
+        except ValueError:
+            history_pages = 3
+        history_pages = max(1, min(10, history_pages))
+        try:
             limit = int(request.form.get("limit", "12"))
         except ValueError:
             limit = 12
         limit = max(1, min(200, limit))
 
-        results, error = collect_items(selected_source, keyword, limit)
+        results, error = collect_items(selected_source, keyword, limit, history_pages)
 
     return render_template(
         "index.html",
@@ -238,6 +295,7 @@ def index():
         selected_source=selected_source,
         limit=limit,
         keyword=keyword,
+        history_pages=history_pages,
         error=error,
         results=results,
     )
@@ -248,6 +306,11 @@ def export_excel():
     source_keys = [ALL_SOURCES_KEY, *list(SOURCES.keys())]
     selected_source = request.form.get("source", source_keys[0])
     keyword = (request.form.get("keyword", "") or "").strip()
+    try:
+        history_pages = int(request.form.get("history_pages", "3"))
+    except ValueError:
+        history_pages = 3
+    history_pages = max(1, min(10, history_pages))
 
     try:
         limit = int(request.form.get("limit", "12"))
@@ -255,7 +318,7 @@ def export_excel():
         limit = 12
     limit = max(1, min(200, limit))
 
-    results, error = collect_items(selected_source, keyword, limit)
+    results, error = collect_items(selected_source, keyword, limit, history_pages)
     if error:
         return render_template(
             "index.html",
@@ -263,6 +326,7 @@ def export_excel():
             selected_source=selected_source,
             limit=limit,
             keyword=keyword,
+            history_pages=history_pages,
             error=error,
             results=[],
         )
