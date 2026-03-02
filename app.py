@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from io import BytesIO
+import hmac
 import os
 import re
+import threading
+import uuid
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from html import unescape
+from typing import Callable
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 try:
@@ -15,10 +19,14 @@ except ImportError:  # pragma: no cover
     BeautifulSoup = None
 from openpyxl import Workbook
 import requests
-from flask import Flask, render_template, request, send_file
+from flask import Flask, jsonify, redirect, render_template, request, send_file, session, url_for
 
 app = Flask(__name__)
 TIMEOUT_SECONDS = int(os.getenv("FEED_READ_TIMEOUT", "20"))
+app.secret_key = os.getenv("SECRET_KEY", "change-this-secret-key")
+APP_PASSWORD = os.getenv("WEB_PASSWORD", "news1234")
+CRAWL_JOBS: dict[str, dict] = {}
+JOBS_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -237,15 +245,15 @@ ARTICLE_SELECTORS: dict[str, tuple[str, ...]] = {
     "kr_sbs_politics": (".main_text p", "#container p", "article p"),
     "kr_sbs_economy": (".main_text p", "#container p", "article p"),
     "kr_sbs_world": (".main_text p", "#container p", "article p"),
-    "jp_nhk_news": (".content--detail-body p", ".module--article-body p", "article p"),
-    "jp_meti_news": ("#main p", ".main p", ".container p", "article p"),
-    "jp_mainichi_news": (".articledetail-body p", ".article-body p", "article p"),
-    "jp_yahoo_news": ("article p", "main p", ".sc-contents p"),
-    "jp_nhk_society": (".content--detail-body p", ".module--article-body p", "article p"),
-    "jp_nhk_world": (".content--detail-body p", ".module--article-body p", "article p"),
-    "jp_nhk_politics": (".content--detail-body p", ".module--article-body p", "article p"),
-    "jp_nhk_economy": (".content--detail-body p", ".module--article-body p", "article p"),
-    "jp_nhk_science": (".content--detail-body p", ".module--article-body p", "article p"),
+    "jp_nhk_news": (".content--detail-body", ".module--article-body", "article", "main"),
+    "jp_meti_news": ("#main", ".main", ".container", "article", "main"),
+    "jp_mainichi_news": (".articledetail-body", ".article-body", "article", "main"),
+    "jp_yahoo_news": ("article", "main article", "main", "[class*='article']"),
+    "jp_nhk_society": (".content--detail-body", ".module--article-body", "article", "main"),
+    "jp_nhk_world": (".content--detail-body", ".module--article-body", "article", "main"),
+    "jp_nhk_politics": (".content--detail-body", ".module--article-body", "article", "main"),
+    "jp_nhk_economy": (".content--detail-body", ".module--article-body", "article", "main"),
+    "jp_nhk_science": (".content--detail-body", ".module--article-body", "article", "main"),
     "en_nasa_news": (".entry-content p", ".wysiwyg p", "article p"),
     "en_bbc_world": ("[data-component='text-block'] p", "article p", "main p"),
     "en_nyt_world": ("section[name='articleBody'] p", ".StoryBodyCompanionColumn p", "article p"),
@@ -479,7 +487,19 @@ def extract_article_text(source_key: str, html: bytes | str) -> str:
         return clean_text(text)[:50000]
 
     soup = BeautifulSoup(html, "html.parser")
+    for tag in soup(["script", "style", "noscript", "header", "footer", "nav", "aside"]):
+        tag.decompose()
     selectors = ARTICLE_SELECTORS.get(source_key, ("article p", "main p", "p"))
+    jp_source = source_key.startswith("jp_")
+
+    def text_score(text: str) -> float:
+        if not text:
+            return 0.0
+        score = float(len(text))
+        if jp_source:
+            jp_chars = sum(1 for ch in text if "\u3040" <= ch <= "\u30ff" or "\u4e00" <= ch <= "\u9fff")
+            score *= 1.0 + (jp_chars / max(len(text), 1))
+        return score
 
     best_text = ""
     for selector in selectors:
@@ -490,24 +510,39 @@ def extract_article_text(source_key: str, html: bytes | str) -> str:
         parts: list[str] = []
         seen: set[str] = set()
         for elem in elements:
-            text = clean_text(elem.get_text(" ", strip=True))
-            if len(text) < 8:
-                continue
-            if text in seen:
-                continue
-            seen.add(text)
-            parts.append(text)
+            block_nodes = elem.select("p, li, h2, h3, h4, div")
+            if block_nodes:
+                for node in block_nodes:
+                    if node.name == "div" and node.select("p, li, h2, h3, h4"):
+                        continue
+                    text = clean_text(node.get_text(" ", strip=True))
+                    if len(text) < 8:
+                        continue
+                    if text in seen:
+                        continue
+                    seen.add(text)
+                    parts.append(text)
+            else:
+                own_text = clean_text(elem.get_text(" ", strip=True))
+                if len(own_text) >= 8 and own_text not in seen:
+                    seen.add(own_text)
+                    parts.append(own_text)
 
         candidate = clean_text(" ".join(parts))
-        if len(candidate) > len(best_text):
+        if text_score(candidate) > text_score(best_text):
             best_text = candidate
 
     if not best_text:
-        for tag in soup(["script", "style", "noscript"]):
-            tag.decompose()
+        fallback_candidates: list[str] = []
+        for elem in soup.select("article, main, [role='main'], #main, .main, .content, .article"):
+            text = clean_text(elem.get_text(" ", strip=True))
+            if len(text) >= 80:
+                fallback_candidates.append(text)
         body = soup.find("body")
         if body:
-            best_text = clean_text(body.get_text(" ", strip=True))
+            fallback_candidates.append(clean_text(body.get_text(" ", strip=True)))
+        if fallback_candidates:
+            best_text = max(fallback_candidates, key=text_score)
 
     return best_text[:200000]
 
@@ -546,6 +581,7 @@ def collect_items(
     history_pages: int = 1,
     parse_article_html: bool = False,
     include_archive: bool = True,
+    progress_callback: Callable[[int, str], None] | None = None,
 ) -> tuple[list[dict], str]:
     # Pull more items before filtering to reduce "too few results" cases.
     fetch_limit = min(200, max(limit, limit * 5 if keyword else limit))
@@ -560,7 +596,11 @@ def collect_items(
             return [], "선택한 언어에 해당하는 소스가 없습니다."
         merged: list[dict] = []
         errors: list[str] = []
-        for source in target_sources:
+        total_sources = len(target_sources)
+        for idx, source in enumerate(target_sources, start=1):
+            if progress_callback:
+                pct = int(5 + (idx - 1) / total_sources * 70)
+                progress_callback(pct, f"{source.name} 수집 중")
             try:
                 crawled = crawl_feed(source, fetch_limit, history_pages=history_pages)
                 for item in crawled:
@@ -574,11 +614,17 @@ def collect_items(
                 errors.append(source.name)
             if include_archive:
                 merged.extend(collect_archive_items(source, min(fetch_limit, 80)))
+        if progress_callback:
+            progress_callback(80, "키워드 필터 적용 중")
 
         results = filter_by_keyword(merged, keyword)[:limit]
         if results:
             if parse_article_html:
+                if progress_callback:
+                    progress_callback(85, "기사 본문 파싱 중")
                 results = enrich_with_article_bodies(results)
+            if progress_callback:
+                progress_callback(100, "완료")
             if errors:
                 return results, f"일부 소스 실패: {', '.join(errors[:2])}"
             return results, ""
@@ -593,15 +639,23 @@ def collect_items(
         return [], "선택한 언어와 뉴스 소스가 일치하지 않습니다."
 
     try:
+        if progress_callback:
+            progress_callback(20, f"{source.name} 피드 수집 중")
         crawled = crawl_feed(source, fetch_limit, history_pages=history_pages)
+        if progress_callback:
+            progress_callback(60, "키워드 필터 적용 중")
         results = filter_by_keyword(crawled, keyword)[:limit]
         for item in results:
             item["source_name"] = source.name
             item["language"] = source.language
             item["source_key"] = source.key
         if parse_article_html:
+            if progress_callback:
+                progress_callback(80, "기사 본문 파싱 중")
             results = enrich_with_article_bodies(results)
         if include_archive and len(results) < limit:
+            if progress_callback:
+                progress_callback(88, "아카이브 수집 중")
             archive_items = collect_archive_items(source, min(fetch_limit, 80))
             archive_items = filter_by_keyword(archive_items, keyword)
             results.extend(archive_items)
@@ -609,6 +663,8 @@ def collect_items(
             for item in results:
                 dedup[item.get("link", "") or item.get("title", "")] = item
             results = list(dedup.values())[:limit]
+        if progress_callback:
+            progress_callback(100, "완료")
         if not results:
             return [], "조건에 맞는 결과가 없습니다. 키워드/소스를 바꿔 보세요."
         return results, ""
@@ -616,6 +672,79 @@ def collect_items(
         return [], f"피드 요청 실패: {exc}"
     except ET.ParseError as exc:
         return [], f"피드 파싱 실패: {exc}"
+
+
+@app.before_request
+def require_login():
+    allowed = {"login", "static"}
+    if request.endpoint in allowed:
+        return None
+    if session.get("authenticated"):
+        return None
+    if request.path.startswith("/crawl/"):
+        return jsonify({"error": "unauthorized"}), 401
+    return redirect(url_for("login"))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = ""
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if hmac.compare_digest(password, APP_PASSWORD):
+            session["authenticated"] = True
+            return redirect(url_for("index"))
+        error = "비밀번호가 올바르지 않습니다."
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
+def _set_job(job_id: str, payload: dict) -> None:
+    with JOBS_LOCK:
+        CRAWL_JOBS[job_id] = {**CRAWL_JOBS.get(job_id, {}), **payload}
+
+
+def _run_job(job_id: str, params: dict) -> None:
+    def progress(pct: int, message: str) -> None:
+        _set_job(job_id, {"progress": pct, "message": message})
+
+    try:
+        results, error = collect_items(
+            params["selected_source"],
+            params["selected_language"],
+            params["keyword"],
+            params["limit"],
+            params["history_pages"],
+            parse_article_html=params["parse_article_html"],
+            include_archive=params["include_archive"],
+            progress_callback=progress,
+        )
+        _set_job(
+            job_id,
+            {
+                "status": "done",
+                "progress": 100,
+                "message": "완료",
+                "error": error,
+                "results": results,
+            },
+        )
+    except Exception as exc:  # pragma: no cover
+        _set_job(
+            job_id,
+            {
+                "status": "failed",
+                "progress": 100,
+                "message": "실패",
+                "error": f"크롤링 실패: {exc}",
+                "results": [],
+            },
+        )
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -672,6 +801,67 @@ def index():
         error=error,
         results=results,
     )
+
+
+@app.route("/crawl/start", methods=["POST"])
+def crawl_start():
+    source_keys = [ALL_SOURCES_KEY, *list(SOURCES.keys())]
+    selected_source = request.form.get("source", source_keys[0])
+    selected_language = request.form.get("language", ALL_LANGUAGES_KEY)
+    keyword = (request.form.get("keyword", "") or "").strip()
+    parse_article_html = request.form.get("parse_article_html") == "1"
+    include_archive = request.form.get("include_archive") == "1"
+
+    try:
+        history_pages = int(request.form.get("history_pages", "3"))
+    except ValueError:
+        history_pages = 3
+    history_pages = max(1, min(10, history_pages))
+
+    try:
+        limit = int(request.form.get("limit", "12"))
+    except ValueError:
+        limit = 12
+    limit = max(1, min(200, limit))
+
+    job_id = uuid.uuid4().hex
+    _set_job(
+        job_id,
+        {
+            "status": "running",
+            "progress": 1,
+            "message": "작업 시작",
+            "error": "",
+            "results": [],
+        },
+    )
+    thread = threading.Thread(
+        target=_run_job,
+        args=(
+            job_id,
+            {
+                "selected_source": selected_source,
+                "selected_language": selected_language,
+                "keyword": keyword,
+                "limit": limit,
+                "history_pages": history_pages,
+                "parse_article_html": parse_article_html,
+                "include_archive": include_archive,
+            },
+        ),
+        daemon=True,
+    )
+    thread.start()
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/crawl/status/<job_id>", methods=["GET"])
+def crawl_status(job_id: str):
+    with JOBS_LOCK:
+        job = CRAWL_JOBS.get(job_id)
+    if not job:
+        return jsonify({"status": "not_found"}), 404
+    return jsonify(job)
 
 
 @app.route("/export", methods=["POST"])
