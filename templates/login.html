@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login - Gov News Crawler</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <main class="container" style="max-width:480px; padding-top:4rem;">
+      <h1>로그인</h1>
+      <p class="lead">서비스 접속 비밀번호를 입력하세요.</p>
+      <form method="post" class="panel" style="padding:1rem; display:grid; gap:0.8rem;">
+        <label>
+          비밀번호
+          <input type="password" name="password" required />
+        </label>
+        <button type="submit">접속</button>
+      </form>
+      {% if error %}
+      <div class="error panel" style="margin-top:0.8rem;">{{ error }}</div>
+      {% endif %}
+      <section class="producer">
+        <img src="{{ url_for('static', filename='lee.JPG') }}" alt="LEE JUNSEO" />
+        <p>Produced by LEE JUNSEO</p>
+      </section>
+    </main>
+  </body>
+</html>
