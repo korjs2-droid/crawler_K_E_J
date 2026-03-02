@@ -26,6 +26,9 @@ from flask import Flask, jsonify, redirect, render_template, request, send_file,
 app = Flask(__name__)
 TIMEOUT_SECONDS = int(os.getenv("FEED_READ_TIMEOUT", "20"))
 SOURCE_BUDGET_SECONDS = float(os.getenv("SOURCE_BUDGET_SECONDS", "8"))
+ARCHIVE_MAX_SITEMAPS = int(os.getenv("ARCHIVE_MAX_SITEMAPS", "60"))
+ARCHIVE_NESTED_PER_SITEMAP = int(os.getenv("ARCHIVE_NESTED_PER_SITEMAP", "20"))
+ARCHIVE_CANDIDATE_FACTOR = int(os.getenv("ARCHIVE_CANDIDATE_FACTOR", "12"))
 app.secret_key = os.getenv("SECRET_KEY", "change-this-secret-key")
 APP_PASSWORD = os.getenv("WEB_PASSWORD", "news1234")
 CRAWL_JOBS: dict[str, dict] = {}
@@ -1795,13 +1798,16 @@ def title_from_url(url: str) -> str:
     return clean_text(tail)[:180]
 
 
-def collect_web_archive_items(source: FeedSource, limit: int, deadline: float | None = None) -> list[dict]:
+def collect_web_archive_items(
+    source: FeedSource, limit: int, history_pages: int = 3, deadline: float | None = None
+) -> list[dict]:
     headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
     candidates: list[dict] = []
     seen_links: set[str] = set()
 
     # 1) crawl deeper pages from listing source
-    for page in range(2, 11):
+    max_listing_pages = max(3, min(60, history_pages * 6))
+    for page in range(2, max_listing_pages + 1):
         if deadline_exceeded(deadline):
             break
         page_url = build_paged_url(source.feed_url, page)
@@ -1817,11 +1823,11 @@ def collect_web_archive_items(source: FeedSource, limit: int, deadline: float | 
                     continue
                 seen_links.add(link)
                 candidates.append(item)
-                if len(candidates) >= limit * 4:
+                if len(candidates) >= limit * ARCHIVE_CANDIDATE_FACTOR:
                     break
         except requests.RequestException:
             continue
-        if len(candidates) >= limit * 4:
+        if len(candidates) >= limit * ARCHIVE_CANDIDATE_FACTOR:
             break
 
     # 2) fallback with sitemap/news-sitemap candidates
@@ -1833,9 +1839,9 @@ def collect_web_archive_items(source: FeedSource, limit: int, deadline: float | 
             urljoin(source.homepage, "/news-sitemap.xml"),
         ]
     visited: set[str] = set()
-    max_sitemaps = 16
+    max_sitemaps = max(12, min(200, ARCHIVE_MAX_SITEMAPS, history_pages * 20))
 
-    while to_visit and len(visited) < max_sitemaps and len(candidates) < limit * 5:
+    while to_visit and len(visited) < max_sitemaps and len(candidates) < limit * ARCHIVE_CANDIDATE_FACTOR:
         if deadline_exceeded(deadline):
             break
         sitemap_url = to_visit.pop(0)
@@ -1846,7 +1852,7 @@ def collect_web_archive_items(source: FeedSource, limit: int, deadline: float | 
             resp = requests.get(sitemap_url, timeout=(8, TIMEOUT_SECONDS), headers=headers)
             resp.raise_for_status()
             urls, nested = parse_sitemap_bundle(resp.content)
-            for n in nested[:8]:
+            for n in nested[: max(4, min(40, ARCHIVE_NESTED_PER_SITEMAP))]:
                 if n not in visited:
                     to_visit.append(n)
             for url in urls:
@@ -1858,7 +1864,7 @@ def collect_web_archive_items(source: FeedSource, limit: int, deadline: float | 
                     continue
                 seen_links.add(url)
                 candidates.append({"link": url, "title": title_from_url(url)})
-                if len(candidates) >= limit * 5:
+                if len(candidates) >= limit * ARCHIVE_CANDIDATE_FACTOR:
                     break
         except (requests.RequestException, ET.ParseError):
             continue
@@ -1890,9 +1896,11 @@ def collect_web_archive_items(source: FeedSource, limit: int, deadline: float | 
     return items
 
 
-def collect_archive_items(source: FeedSource, limit: int, deadline: float | None = None) -> list[dict]:
+def collect_archive_items(
+    source: FeedSource, limit: int, history_pages: int = 3, deadline: float | None = None
+) -> list[dict]:
     if source.source_type == "web":
-        return collect_web_archive_items(source, limit, deadline=deadline)
+        return collect_web_archive_items(source, limit, history_pages=history_pages, deadline=deadline)
 
     headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
     candidates: list[str] = []
@@ -1901,7 +1909,7 @@ def collect_archive_items(source: FeedSource, limit: int, deadline: float | None
     if not to_visit:
         to_visit.append(urljoin(source.homepage, "/sitemap.xml"))
 
-    max_sitemaps = 20
+    max_sitemaps = max(12, min(200, ARCHIVE_MAX_SITEMAPS, history_pages * 20))
     while to_visit and len(visited_sitemaps) < max_sitemaps:
         if deadline_exceeded(deadline):
             break
@@ -1914,7 +1922,7 @@ def collect_archive_items(source: FeedSource, limit: int, deadline: float | None
             res = requests.get(sitemap_url, timeout=(8, TIMEOUT_SECONDS), headers=headers)
             res.raise_for_status()
             urls, nested_sitemaps = parse_sitemap_bundle(res.content)
-            for nested in nested_sitemaps[:8]:
+            for nested in nested_sitemaps[: max(4, min(40, ARCHIVE_NESTED_PER_SITEMAP))]:
                 if nested not in visited_sitemaps:
                     to_visit.append(nested)
             # Keep only article-like links for each source.
@@ -1928,7 +1936,7 @@ def collect_archive_items(source: FeedSource, limit: int, deadline: float | None
                 urls = [u for u in urls if "/news-release/" in u or "/news/" in u]
             elif source.key.startswith("en_bbc_"):
                 urls = [u for u in urls if "/news/" in u]
-            candidates.extend(urls[: limit * 4])
+            candidates.extend(urls[: limit * ARCHIVE_CANDIDATE_FACTOR])
         except (requests.RequestException, ET.ParseError):
             continue
 
@@ -1938,7 +1946,7 @@ def collect_archive_items(source: FeedSource, limit: int, deadline: float | None
         if url and url not in seen:
             seen.add(url)
             unique_urls.append(url)
-        if len(unique_urls) >= limit * 3:
+        if len(unique_urls) >= limit * ARCHIVE_CANDIDATE_FACTOR:
             break
 
     items: list[dict] = []
@@ -2251,7 +2259,12 @@ def collect_items(
             except ET.ParseError:
                 errors.append(source.name)
             if include_archive:
-                archive_items = collect_archive_items(source, min(fetch_limit, 80), deadline=deadline)
+                archive_items = collect_archive_items(
+                    source,
+                    min(fetch_limit, 200),
+                    history_pages=history_pages,
+                    deadline=deadline,
+                )
                 for item in archive_items:
                     item["source_name"] = source.name
                     item["language"] = source.language
@@ -2346,7 +2359,12 @@ def collect_items(
         if include_archive and len(results) < limit:
             if progress_callback:
                 progress_callback(88, "아카이브 수집 중")
-            archive_items = collect_archive_items(source, min(fetch_limit, 80), deadline=deadline)
+            archive_items = collect_archive_items(
+                source,
+                min(fetch_limit, 200),
+                history_pages=history_pages,
+                deadline=deadline,
+            )
             archive_items = filter_by_keyword(archive_items, keyword)
             results.extend(archive_items)
             dedup: dict[str, dict] = {}
@@ -2516,7 +2534,7 @@ def index():
             history_pages = int(request.form.get("history_pages", "3"))
         except ValueError:
             history_pages = 3
-        history_pages = max(1, min(10, history_pages))
+        history_pages = max(1, min(30, history_pages))
         try:
             limit = int(request.form.get("limit", "12"))
         except ValueError:
@@ -2577,7 +2595,7 @@ def crawl_start():
         history_pages = int(request.form.get("history_pages", "3"))
     except ValueError:
         history_pages = 3
-    history_pages = max(1, min(10, history_pages))
+    history_pages = max(1, min(30, history_pages))
 
     try:
         limit = int(request.form.get("limit", "12"))
@@ -2747,7 +2765,7 @@ def export_excel():
         history_pages = int(request.form.get("history_pages", "3"))
     except ValueError:
         history_pages = 3
-    history_pages = max(1, min(10, history_pages))
+    history_pages = max(1, min(30, history_pages))
 
     try:
         limit = int(request.form.get("limit", "12"))
