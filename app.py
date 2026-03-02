@@ -20,6 +20,7 @@ class FeedSource:
     name: str
     feed_url: str
     homepage: str
+    fallback_urls: tuple[str, ...] = ()
 
 
 SOURCES: dict[str, FeedSource] = {
@@ -36,6 +37,9 @@ SOURCES: dict[str, FeedSource] = {
         name="経済産業省 ニュースリリース",
         feed_url="https://www.meti.go.jp/rss/news_release.xml",
         homepage="https://www.meti.go.jp/english/press/index.html",
+        fallback_urls=(
+            "https://meti.go.jp/rss/news_release.xml",
+        ),
     ),
     "en_nasa_news": FeedSource(
         key="en_nasa_news",
@@ -55,8 +59,9 @@ def clean_text(raw: str | None) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def parse_feed(xml_text: str, limit: int) -> list[dict]:
-    root = ET.fromstring(xml_text)
+def parse_feed(xml_data: bytes | str, limit: int) -> list[dict]:
+    # Parse raw XML bytes so parser can honor feed-declared encoding.
+    root = ET.fromstring(xml_data)
 
     rss_items = root.findall("./channel/item")
     if rss_items:
@@ -113,9 +118,27 @@ def parse_feed(xml_text: str, limit: int) -> list[dict]:
 
 def crawl_feed(source: FeedSource, limit: int) -> list[dict]:
     headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
-    response = requests.get(source.feed_url, timeout=TIMEOUT_SECONDS, headers=headers)
-    response.raise_for_status()
-    return parse_feed(response.text, limit)
+    urls = (source.feed_url, *source.fallback_urls)
+    errors: list[str] = []
+
+    for url in urls:
+        for attempt in range(2):
+            try:
+                # Use separate connect/read timeout so slow feeds are more tolerant.
+                response = requests.get(url, timeout=(5, TIMEOUT_SECONDS), headers=headers)
+                response.raise_for_status()
+                return parse_feed(response.content, limit)
+            except (requests.Timeout, requests.ConnectionError) as exc:
+                errors.append(f"{url} ({exc.__class__.__name__})")
+                if attempt == 0:
+                    continue
+            except (requests.HTTPError, ET.ParseError) as exc:
+                errors.append(f"{url} ({exc.__class__.__name__})")
+                break
+
+    raise requests.RequestException(
+        "여러 피드 URL 요청에 실패했습니다: " + ", ".join(errors[:3])
+    )
 
 
 def filter_by_keyword(items: list[dict], keyword: str) -> list[dict]:
