@@ -2387,26 +2387,6 @@ def export_excel():
             fill_with_general=fill_with_general,
             min_per_source=min_per_source,
         )
-    if error and not results:
-        return render_template(
-            "index.html",
-            sources=enabled_sources,
-            language_options=LANGUAGE_OPTIONS,
-            source_type_options=SOURCE_TYPE_OPTIONS,
-            selected_source=selected_source,
-            selected_language=selected_language,
-            selected_type=selected_type,
-            limit=limit,
-            keyword=keyword,
-            history_pages=history_pages,
-            parse_article_html=parse_article_html,
-            include_archive=include_archive,
-            fill_with_general=fill_with_general,
-            min_per_source=min_per_source,
-            error=error,
-            results=[],
-        )
-
     wb = Workbook()
     ws = wb.active
     ws.title = "news"
@@ -2441,6 +2421,21 @@ def export_excel():
             sanitize_excel_text(keyword),
         ]
         ws.append(row)
+
+    if not results:
+        # Always provide a downloadable file even when no rows were collected.
+        ws.append(
+            [
+                sanitize_excel_text(selected_language),
+                sanitize_excel_text(selected_source),
+                "",
+                "",
+                sanitize_excel_text(error or "결과가 없습니다."),
+                "",
+                "",
+                sanitize_excel_text(keyword),
+            ]
+        )
 
     output = BytesIO()
     try:
