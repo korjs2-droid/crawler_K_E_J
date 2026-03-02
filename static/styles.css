@@ -25,6 +25,11 @@ body {
   padding: 1.6rem 1rem 3rem;
 }
 
+.logout-wrap {
+  display: flex;
+  justify-content: flex-end;
+}
+
 h1 {
   margin: 0;
 }
@@ -93,6 +98,31 @@ button.secondary {
   display: grid;
   gap: 0.8rem;
   margin-top: 1rem;
+}
+
+.progress-panel {
+  margin-top: 1rem;
+  padding: 0.9rem;
+}
+
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.45rem;
+}
+
+.progress-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #d9e1db;
+  overflow: hidden;
+}
+
+#progress-bar {
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
 }
 
 .card {
