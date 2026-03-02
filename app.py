@@ -409,27 +409,35 @@ def extract_article_text(source_key: str, html: bytes | str) -> str:
     soup = BeautifulSoup(html, "html.parser")
     selectors = ARTICLE_SELECTORS.get(source_key, ("article p", "main p", "p"))
 
-    texts: list[str] = []
+    best_text = ""
     for selector in selectors:
         elements = soup.select(selector)
+        if not elements:
+            continue
+
+        parts: list[str] = []
+        seen: set[str] = set()
         for elem in elements:
             text = clean_text(elem.get_text(" ", strip=True))
-            if len(text) >= 30:
-                texts.append(text)
-        if len(texts) >= 4:
-            break
+            if len(text) < 8:
+                continue
+            if text in seen:
+                continue
+            seen.add(text)
+            parts.append(text)
 
-    if not texts:
+        candidate = clean_text(" ".join(parts))
+        if len(candidate) > len(best_text):
+            best_text = candidate
+
+    if not best_text:
         for tag in soup(["script", "style", "noscript"]):
             tag.decompose()
         body = soup.find("body")
         if body:
-            text = clean_text(body.get_text(" ", strip=True))
-            if len(text) >= 40:
-                texts.append(text)
+            best_text = clean_text(body.get_text(" ", strip=True))
 
-    merged = clean_text(" ".join(texts))
-    return merged[:50000]
+    return best_text[:200000]
 
 
 def fetch_article_body(source_key: str, link: str) -> str:
@@ -444,10 +452,10 @@ def fetch_article_body(source_key: str, link: str) -> str:
         return ""
 
 
-def enrich_with_article_bodies(items: list[dict], max_items: int = 40) -> list[dict]:
+def enrich_with_article_bodies(items: list[dict], max_items: int | None = None) -> list[dict]:
     if not items:
         return items
-    capped = min(len(items), max_items)
+    capped = len(items) if max_items is None else min(len(items), max_items)
     for idx in range(capped):
         item = items[idx]
         source_key = item.get("source_key", "")
