@@ -1017,6 +1017,193 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://feeds.feedburner.com/rsscna/technology",
         homepage="https://www.cna.com.tw/",
     ),
+    "kr_mois_press_web": FeedSource(
+        key="kr_mois_press_web",
+        language="한국어",
+        name="행정안전부 보도자료 (Web)",
+        feed_url="https://www.mois.go.kr/frt/bbs/type001/commonSelectBoardList.do?bbsId=BBSMSTR_000000000014",
+        homepage="https://www.mois.go.kr/",
+        source_type="web",
+    ),
+    "kr_molit_news_web": FeedSource(
+        key="kr_molit_news_web",
+        language="한국어",
+        name="국토교통부 보도자료 (Web)",
+        feed_url="https://www.molit.go.kr/USR/NEWS/m_71/lst.jsp",
+        homepage="https://www.molit.go.kr/",
+        source_type="web",
+    ),
+    "kr_msit_press_web": FeedSource(
+        key="kr_msit_press_web",
+        language="한국어",
+        name="과학기술정보통신부 보도자료 (Web)",
+        feed_url="https://www.msit.go.kr/bbs/list.do?sCode=user&mId=113&mPid=112",
+        homepage="https://www.msit.go.kr/",
+        source_type="web",
+    ),
+    "jp_mhlw_press_web": FeedSource(
+        key="jp_mhlw_press_web",
+        language="日本語",
+        name="厚生労働省 報道発表資料 (Web)",
+        feed_url="https://www.mhlw.go.jp/stf/houdou/index.html",
+        homepage="https://www.mhlw.go.jp/",
+        source_type="web",
+    ),
+    "jp_mof_press_web": FeedSource(
+        key="jp_mof_press_web",
+        language="日本語",
+        name="財務省 報道発表 (Web)",
+        feed_url="https://www.mof.go.jp/public_relations/news/",
+        homepage="https://www.mof.go.jp/",
+        source_type="web",
+    ),
+    "jp_mofa_press_web": FeedSource(
+        key="jp_mofa_press_web",
+        language="日本語",
+        name="外務省 報道発表 (Web)",
+        feed_url="https://www.mofa.go.jp/mofaj/press/release/index.html",
+        homepage="https://www.mofa.go.jp/",
+        source_type="web",
+    ),
+    "en_un_news_web": FeedSource(
+        key="en_un_news_web",
+        language="English",
+        name="UN News (Web)",
+        feed_url="https://news.un.org/en/",
+        homepage="https://news.un.org/",
+        source_type="web",
+    ),
+    "en_worldbank_news_web": FeedSource(
+        key="en_worldbank_news_web",
+        language="English",
+        name="World Bank News (Web)",
+        feed_url="https://www.worldbank.org/en/news/all",
+        homepage="https://www.worldbank.org/",
+        source_type="web",
+    ),
+    "en_imf_news_web": FeedSource(
+        key="en_imf_news_web",
+        language="English",
+        name="IMF News (Web)",
+        feed_url="https://www.imf.org/en/News",
+        homepage="https://www.imf.org/",
+        source_type="web",
+    ),
+    "zh_mfa_cn_web": FeedSource(
+        key="zh_mfa_cn_web",
+        language="中文",
+        name="中国外交部 新闻动态 (Web)",
+        feed_url="https://www.mfa.gov.cn/web/wjdt_674879/gjldrhd_674881/",
+        homepage="https://www.mfa.gov.cn/",
+        source_type="web",
+    ),
+    "zh_moe_cn_web": FeedSource(
+        key="zh_moe_cn_web",
+        language="中文",
+        name="中国教育部 新闻发布 (Web)",
+        feed_url="http://www.moe.gov.cn/jyb_xwfb/s5147/",
+        homepage="http://www.moe.gov.cn/",
+        source_type="web",
+    ),
+    "zh_stats_cn_web": FeedSource(
+        key="zh_stats_cn_web",
+        language="中文",
+        name="中国国家统计局 最新发布 (Web)",
+        feed_url="http://www.stats.gov.cn/sj/zxfb/",
+        homepage="http://www.stats.gov.cn/",
+        source_type="web",
+    ),
+    "sns_medium_ai_tag": FeedSource(
+        key="sns_medium_ai_tag",
+        language="English",
+        name="Medium AI Tag Feed",
+        feed_url="https://medium.com/feed/tag/artificial-intelligence",
+        homepage="https://medium.com/tag/artificial-intelligence",
+    ),
+    "sns_medium_data_tag": FeedSource(
+        key="sns_medium_data_tag",
+        language="English",
+        name="Medium Data Science Tag Feed",
+        feed_url="https://medium.com/feed/tag/data-science",
+        homepage="https://medium.com/tag/data-science",
+    ),
+    "sns_medium_programming_tag": FeedSource(
+        key="sns_medium_programming_tag",
+        language="English",
+        name="Medium Programming Tag Feed",
+        feed_url="https://medium.com/feed/tag/programming",
+        homepage="https://medium.com/tag/programming",
+    ),
+    "sns_mastodon_mastodon": FeedSource(
+        key="sns_mastodon_mastodon",
+        language="English",
+        name="Mastodon @Mastodon RSS",
+        feed_url="https://mastodon.social/@Mastodon.rss",
+        homepage="https://mastodon.social/@Mastodon",
+    ),
+    "sns_mastodon_gargron": FeedSource(
+        key="sns_mastodon_gargron",
+        language="English",
+        name="Mastodon @Gargron RSS",
+        feed_url="https://mastodon.social/@Gargron.rss",
+        homepage="https://mastodon.social/@Gargron",
+    ),
+    "sns_reddit_worldnews": FeedSource(
+        key="sns_reddit_worldnews",
+        language="English",
+        name="Reddit r/worldnews RSS",
+        feed_url="https://www.reddit.com/r/worldnews/.rss",
+        homepage="https://www.reddit.com/r/worldnews/",
+    ),
+    "sns_reddit_technology": FeedSource(
+        key="sns_reddit_technology",
+        language="English",
+        name="Reddit r/technology RSS",
+        feed_url="https://www.reddit.com/r/technology/.rss",
+        homepage="https://www.reddit.com/r/technology/",
+    ),
+    "sns_wordpress_mozilla": FeedSource(
+        key="sns_wordpress_mozilla",
+        language="English",
+        name="Mozilla Blog Feed",
+        feed_url="https://blog.mozilla.org/en/feed/",
+        homepage="https://blog.mozilla.org/en/",
+    ),
+    "sns_wordpress_matt": FeedSource(
+        key="sns_wordpress_matt",
+        language="English",
+        name="Matt Mullenweg Blog Feed",
+        feed_url="https://ma.tt/feed/",
+        homepage="https://ma.tt/",
+    ),
+    "sns_youtube_googledev": FeedSource(
+        key="sns_youtube_googledev",
+        language="English",
+        name="YouTube Google Developers Feed",
+        feed_url="https://www.youtube.com/feeds/videos.xml?channel_id=UC_x5XG1OV2P6uZZ5FSM9Ttw",
+        homepage="https://www.youtube.com/@GoogleDevelopers",
+    ),
+    "sns_youtube_ted": FeedSource(
+        key="sns_youtube_ted",
+        language="English",
+        name="YouTube TED Feed",
+        feed_url="https://www.youtube.com/feeds/videos.xml?channel_id=UCAuUUnT6oDeKwE6v1NGQxug",
+        homepage="https://www.youtube.com/@TED",
+    ),
+    "sns_wordpress_jp_publickey": FeedSource(
+        key="sns_wordpress_jp_publickey",
+        language="日本語",
+        name="Publickey Blog RSS",
+        feed_url="https://www.publickey1.jp/atom.xml",
+        homepage="https://www.publickey1.jp/",
+    ),
+    "sns_wordpress_zh_rubychina": FeedSource(
+        key="sns_wordpress_zh_rubychina",
+        language="中文",
+        name="Ruby China Feed",
+        feed_url="https://ruby-china.org/topics/feed",
+        homepage="https://ruby-china.org/",
+    ),
 }
 
 ARTICLE_SELECTORS: dict[str, tuple[str, ...]] = {
@@ -1172,6 +1359,30 @@ def resolve_list_selectors(source_key: str) -> tuple[str, ...]:
         return (".list a", ".news_box a", "a")
     if source_key.startswith("zh_xinhuanet_web"):
         return (".yaowen a", ".newsList a", "a")
+    if source_key.startswith("kr_mois_press_web"):
+        return (".board_list a", ".bbs_list a", ".list a", "a")
+    if source_key.startswith("kr_molit_news_web"):
+        return (".board_list a", ".list_type1 a", ".list a", "a")
+    if source_key.startswith("kr_msit_press_web"):
+        return (".board-list a", ".list a", "a")
+    if source_key.startswith("jp_mhlw_press_web"):
+        return (".list_news a", "#contents a", "main a", "a")
+    if source_key.startswith("jp_mof_press_web"):
+        return (".newslist a", ".contents a", "main a", "a")
+    if source_key.startswith("jp_mofa_press_web"):
+        return (".list a", "#contents a", "main a", "a")
+    if source_key.startswith("en_un_news_web"):
+        return (".views-row a", "article a", "main a", "a")
+    if source_key.startswith("en_worldbank_news_web"):
+        return (".listing-item a", ".search-listing a", "main a", "a")
+    if source_key.startswith("en_imf_news_web"):
+        return (".listing-item a", ".news-list a", "main a", "a")
+    if source_key.startswith("zh_mfa_cn_web"):
+        return (".list a", ".news_list a", "#News_Body_Txt_A a", "a")
+    if source_key.startswith("zh_moe_cn_web"):
+        return (".list a", ".wzlist a", "main a", "a")
+    if source_key.startswith("zh_stats_cn_web"):
+        return (".list a", ".center_list a", "main a", "a")
     return ("article a", "main a", "a")
 
 
@@ -1447,6 +1658,16 @@ def resolve_selectors(source_key: str) -> tuple[str, ...]:
         return ("article", ".post-content", "main")
     if source_key.startswith("zh_ruanyifeng") or source_key.startswith("zh_infoq") or source_key.startswith("zh_ithome"):
         return ("article", ".article-content", ".post-content", "main")
+    if source_key.startswith("sns_medium_"):
+        return ("article", "main", ".section-content", ".pw-post-body-paragraph")
+    if source_key.startswith("sns_mastodon_"):
+        return (".entry", "article", "main", ".status__content")
+    if source_key.startswith("sns_reddit_"):
+        return ("[data-test-id='post-content']", "article", "main")
+    if source_key.startswith("sns_wordpress_"):
+        return ("article", ".entry-content", ".post-content", "main")
+    if source_key.startswith("sns_youtube_"):
+        return ("#description-inline-expander", "#description", "main", "article")
     return ARTICLE_SELECTORS.get(source_key, ("article", "main", "p"))
 
 
