@@ -1211,17 +1211,30 @@ def export_excel():
         limit = 12
     limit = max(1, min(200, limit))
 
-    results, error = collect_items(
-        selected_source,
-        selected_language,
-        keyword,
-        limit,
-        history_pages,
-        parse_article_html=parse_article_html,
-        include_archive=include_archive,
-        fill_with_general=fill_with_general,
-        min_per_source=min_per_source,
-    )
+    latest_job_id = (request.form.get("latest_job_id", "") or "").strip()
+    results: list[dict] = []
+    error = ""
+
+    if latest_job_id:
+        with JOBS_LOCK:
+            job = CRAWL_JOBS.get(latest_job_id, {})
+        if job.get("status") == "done":
+            job_results = job.get("results") or []
+            # Respect current requested limit while avoiding re-crawl.
+            results = list(job_results)[:limit]
+
+    if not results:
+        results, error = collect_items(
+            selected_source,
+            selected_language,
+            keyword,
+            limit,
+            history_pages,
+            parse_article_html=parse_article_html,
+            include_archive=include_archive,
+            fill_with_general=fill_with_general,
+            min_per_source=min_per_source,
+        )
     if error:
         return render_template(
             "index.html",
