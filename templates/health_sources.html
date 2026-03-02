@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Source Health Check</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Source Health Check</h1>
+      <p class="lead">피드 URL 접근/파싱 상태를 점검합니다.</p>
+
+      <form method="get" class="panel form-grid">
+        <input type="hidden" name="run" value="1" />
+        <label>
+          점검 개수
+          <input type="number" name="limit" min="1" max="999" value="{{ limit }}" />
+        </label>
+        <label>
+          읽기 타임아웃(초)
+          <input type="number" name="timeout" min="2" max="15" value="{{ timeout }}" />
+        </label>
+        <button type="submit">점검 실행</button>
+      </form>
+
+      {% if run %}
+      <section class="panel" style="padding:0.9rem; margin-top:1rem;">
+        <strong>요약:</strong>
+        OK {{ summary.ok }} / FAIL {{ summary.fail }} / TOTAL {{ summary.total }}
+      </section>
+
+      <section class="panel" style="margin-top:1rem; overflow:auto;">
+        <table style="width:100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:0.6rem; border-bottom:1px solid #d7ddd7;">언어</th>
+              <th style="text-align:left; padding:0.6rem; border-bottom:1px solid #d7ddd7;">소스</th>
+              <th style="text-align:left; padding:0.6rem; border-bottom:1px solid #d7ddd7;">상태</th>
+              <th style="text-align:left; padding:0.6rem; border-bottom:1px solid #d7ddd7;">상세</th>
+              <th style="text-align:left; padding:0.6rem; border-bottom:1px solid #d7ddd7;">Feed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              <td style="padding:0.55rem; border-bottom:1px solid #edf1ec;">{{ row.language }}</td>
+              <td style="padding:0.55rem; border-bottom:1px solid #edf1ec;">{{ row.name }}</td>
+              <td style="padding:0.55rem; border-bottom:1px solid #edf1ec; color:{% if row.status == 'OK' %}#1f6a43{% else %}#9f2a2a{% endif %}; font-weight:700;">{{ row.status }}</td>
+              <td style="padding:0.55rem; border-bottom:1px solid #edf1ec;">{{ row.detail }}</td>
+              <td style="padding:0.55rem; border-bottom:1px solid #edf1ec;"><a href="{{ row.feed_url }}" target="_blank" rel="noreferrer">open</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
+
+      <p style="margin-top:1rem;"><a href="/">메인으로</a></p>
+    </main>
+  </body>
+</html>
