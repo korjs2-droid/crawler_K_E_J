@@ -1232,6 +1232,30 @@ def _set_job(job_id: str, payload: dict) -> None:
         CRAWL_JOBS[job_id] = {**CRAWL_JOBS.get(job_id, {}), **payload}
 
 
+def build_query_signature(
+    selected_source: str,
+    selected_language: str,
+    keyword: str,
+    limit: int,
+    history_pages: int,
+    include_archive: bool,
+    fill_with_general: bool,
+    min_per_source: int,
+) -> str:
+    return "|".join(
+        [
+            selected_source,
+            selected_language,
+            keyword.strip().lower(),
+            str(limit),
+            str(history_pages),
+            "1" if include_archive else "0",
+            "1" if fill_with_general else "0",
+            str(min_per_source),
+        ]
+    )
+
+
 def _run_job(job_id: str, params: dict) -> None:
     def progress(pct: int, message: str) -> None:
         _set_job(job_id, {"progress": pct, "message": message})
@@ -1366,6 +1390,16 @@ def crawl_start():
     except ValueError:
         limit = 12
     limit = max(1, min(200, limit))
+    signature = build_query_signature(
+        selected_source=selected_source,
+        selected_language=selected_language,
+        keyword=keyword,
+        limit=limit,
+        history_pages=history_pages,
+        include_archive=include_archive,
+        fill_with_general=fill_with_general,
+        min_per_source=min_per_source,
+    )
 
     job_id = uuid.uuid4().hex
     _set_job(
@@ -1376,6 +1410,7 @@ def crawl_start():
             "message": "작업 시작",
             "error": "",
             "results": [],
+            "signature": signature,
         },
     )
     thread = threading.Thread(
@@ -1485,6 +1520,16 @@ def export_excel():
     except ValueError:
         limit = 12
     limit = max(1, min(200, limit))
+    signature = build_query_signature(
+        selected_source=selected_source,
+        selected_language=selected_language,
+        keyword=keyword,
+        limit=limit,
+        history_pages=history_pages,
+        include_archive=include_archive,
+        fill_with_general=fill_with_general,
+        min_per_source=min_per_source,
+    )
 
     latest_job_id = (request.form.get("latest_job_id", "") or "").strip()
     results: list[dict] = []
@@ -1493,7 +1538,7 @@ def export_excel():
     if latest_job_id:
         with JOBS_LOCK:
             job = CRAWL_JOBS.get(latest_job_id, {})
-        if job.get("status") == "done":
+        if job.get("status") == "done" and job.get("signature") == signature:
             job_results = job.get("results") or []
             # Respect current requested limit while avoiding re-crawl.
             results = list(job_results)[:limit]
