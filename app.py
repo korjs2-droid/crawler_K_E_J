@@ -29,6 +29,7 @@ class FeedSource:
     feed_url: str
     homepage: str
     fallback_urls: tuple[str, ...] = ()
+    sitemap_urls: tuple[str, ...] = ()
 
 
 ALL_SOURCES_KEY = "all_sources"
@@ -41,6 +42,7 @@ SOURCES: dict[str, FeedSource] = {
         name="정책브리핑 (대한민국 정부)",
         feed_url="https://www.korea.kr/rss/policy.xml",
         homepage="https://www.korea.kr/news/policyNewsList.do",
+        sitemap_urls=("https://www.korea.kr/sitemap.xml",),
     ),
     "jp_nhk_news": FeedSource(
         key="jp_nhk_news",
@@ -48,6 +50,7 @@ SOURCES: dict[str, FeedSource] = {
         name="NHK NEWS (Public Broadcaster)",
         feed_url="https://www3.nhk.or.jp/rss/news/cat0.xml",
         homepage="https://www3.nhk.or.jp/news/",
+        sitemap_urls=("https://www3.nhk.or.jp/sitemap.xml",),
     ),
     "jp_meti_news": FeedSource(
         key="jp_meti_news",
@@ -58,6 +61,7 @@ SOURCES: dict[str, FeedSource] = {
         fallback_urls=(
             "https://meti.go.jp/rss/news_release.xml",
         ),
+        sitemap_urls=("https://www.meti.go.jp/sitemap.xml",),
     ),
     "en_nasa_news": FeedSource(
         key="en_nasa_news",
@@ -65,6 +69,7 @@ SOURCES: dict[str, FeedSource] = {
         name="NASA News Releases (U.S. Government)",
         feed_url="https://www.nasa.gov/news-release/feed/",
         homepage="https://www.nasa.gov/news/all-news/",
+        sitemap_urls=("https://www.nasa.gov/sitemap_index.xml", "https://www.nasa.gov/sitemap.xml"),
     ),
 }
 
@@ -151,6 +156,70 @@ def build_paged_url(base_url: str, page_number: int) -> str:
     else:
         query["page"] = str(page_number)
     return urlunparse(parsed._replace(query=urlencode(query)))
+
+
+def parse_sitemap_urls(xml_data: bytes | str) -> list[str]:
+    root = ET.fromstring(xml_data)
+    ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+    urls: list[str] = []
+    for loc in root.findall(".//sm:url/sm:loc", ns):
+        if loc.text:
+            urls.append(clean_text(loc.text))
+    return [u for u in urls if u]
+
+
+def collect_archive_items(source: FeedSource, limit: int) -> list[dict]:
+    headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
+    candidates: list[str] = []
+
+    for sitemap_url in source.sitemap_urls:
+        try:
+            res = requests.get(sitemap_url, timeout=(8, TIMEOUT_SECONDS), headers=headers)
+            res.raise_for_status()
+            urls = parse_sitemap_urls(res.content)
+            # Keep only article-like links for each source.
+            if source.key == "kr_korea_policy":
+                urls = [u for u in urls if "/news/" in u and ".do?" in u]
+            elif source.key == "jp_nhk_news":
+                urls = [u for u in urls if "/news/html/" in u]
+            elif source.key == "jp_meti_news":
+                urls = [u for u in urls if "/press/" in u or "/policy/" in u]
+            elif source.key == "en_nasa_news":
+                urls = [u for u in urls if "/news-release/" in u or "/news/" in u]
+            candidates.extend(urls[: limit * 4])
+        except (requests.RequestException, ET.ParseError):
+            continue
+
+    seen: set[str] = set()
+    unique_urls: list[str] = []
+    for url in candidates:
+        if url and url not in seen:
+            seen.add(url)
+            unique_urls.append(url)
+        if len(unique_urls) >= limit * 3:
+            break
+
+    items: list[dict] = []
+    for url in unique_urls:
+        body = fetch_article_body(source.key, url)
+        if not body:
+            continue
+        items.append(
+            {
+                "title": "",
+                "link": url,
+                "published": "",
+                "summary": body[:280],
+                "body_text": body,
+                "source_name": source.name,
+                "language": source.language,
+                "source_key": source.key,
+            }
+        )
+        if len(items) >= limit:
+            break
+
+    return items
 
 
 def crawl_feed(source: FeedSource, limit: int, history_pages: int = 1) -> list[dict]:
@@ -291,6 +360,7 @@ def collect_items(
     limit: int,
     history_pages: int = 1,
     parse_article_html: bool = False,
+    include_archive: bool = True,
 ) -> tuple[list[dict], str]:
     # Pull more items before filtering to reduce "too few results" cases.
     fetch_limit = min(200, max(limit, limit * 5 if keyword else limit))
@@ -310,6 +380,8 @@ def collect_items(
                 errors.append(source.name)
             except ET.ParseError:
                 errors.append(source.name)
+            if include_archive:
+                merged.extend(collect_archive_items(source, min(fetch_limit, 80)))
 
         results = filter_by_keyword(merged, keyword)[:limit]
         if results:
@@ -335,6 +407,14 @@ def collect_items(
             item["source_key"] = source.key
         if parse_article_html:
             results = enrich_with_article_bodies(results)
+        if include_archive and len(results) < limit:
+            archive_items = collect_archive_items(source, min(fetch_limit, 80))
+            archive_items = filter_by_keyword(archive_items, keyword)
+            results.extend(archive_items)
+            dedup: dict[str, dict] = {}
+            for item in results:
+                dedup[item.get("link", "") or item.get("title", "")] = item
+            results = list(dedup.values())[:limit]
         if not results:
             return [], "조건에 맞는 결과가 없습니다. 키워드/소스를 바꿔 보세요."
         return results, ""
@@ -352,6 +432,7 @@ def index():
     keyword = ""
     history_pages = 3
     parse_article_html = False
+    include_archive = True
     error = ""
     results: list[dict] = []
 
@@ -359,6 +440,7 @@ def index():
         selected_source = request.form.get("source", source_keys[0])
         keyword = (request.form.get("keyword", "") or "").strip()
         parse_article_html = request.form.get("parse_article_html") == "1"
+        include_archive = request.form.get("include_archive") == "1"
         try:
             history_pages = int(request.form.get("history_pages", "3"))
         except ValueError:
@@ -376,6 +458,7 @@ def index():
             limit,
             history_pages,
             parse_article_html=parse_article_html,
+            include_archive=include_archive,
         )
 
     return render_template(
@@ -386,6 +469,7 @@ def index():
         keyword=keyword,
         history_pages=history_pages,
         parse_article_html=parse_article_html,
+        include_archive=include_archive,
         error=error,
         results=results,
     )
@@ -397,6 +481,7 @@ def export_excel():
     selected_source = request.form.get("source", source_keys[0])
     keyword = (request.form.get("keyword", "") or "").strip()
     parse_article_html = request.form.get("parse_article_html") == "1"
+    include_archive = request.form.get("include_archive") == "1"
     try:
         history_pages = int(request.form.get("history_pages", "3"))
     except ValueError:
@@ -415,6 +500,7 @@ def export_excel():
         limit,
         history_pages,
         parse_article_html=parse_article_html,
+        include_archive=include_archive,
     )
     if error:
         return render_template(
@@ -425,6 +511,7 @@ def export_excel():
             keyword=keyword,
             history_pages=history_pages,
             parse_article_html=parse_article_html,
+            include_archive=include_archive,
             error=error,
             results=[],
         )
