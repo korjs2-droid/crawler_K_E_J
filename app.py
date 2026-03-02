@@ -581,10 +581,11 @@ def collect_items(
     history_pages: int = 1,
     parse_article_html: bool = False,
     include_archive: bool = True,
+    fill_with_general: bool = True,
     progress_callback: Callable[[int, str], None] | None = None,
 ) -> tuple[list[dict], str]:
     # Pull more items before filtering to reduce "too few results" cases.
-    fetch_limit = min(200, max(limit, limit * 5 if keyword else limit))
+    fetch_limit = min(600, max(limit * 3, limit * 20 if keyword else limit * 6))
     target_sources = [
         s
         for s in SOURCES.values()
@@ -617,7 +618,20 @@ def collect_items(
         if progress_callback:
             progress_callback(80, "키워드 필터 적용 중")
 
-        results = filter_by_keyword(merged, keyword)[:limit]
+        filtered = filter_by_keyword(merged, keyword)
+        results = filtered[:limit]
+        used_fallback_fill = False
+        if fill_with_general and len(results) < limit:
+            chosen = {item.get("link", "") or item.get("title", "") for item in results}
+            for item in merged:
+                key = item.get("link", "") or item.get("title", "")
+                if key in chosen:
+                    continue
+                chosen.add(key)
+                results.append(item)
+                used_fallback_fill = True
+                if len(results) >= limit:
+                    break
         if results:
             if parse_article_html:
                 if progress_callback:
@@ -625,6 +639,8 @@ def collect_items(
                 results = enrich_with_article_bodies(results)
             if progress_callback:
                 progress_callback(100, "완료")
+            if used_fallback_fill and keyword:
+                return results, "키워드 일치 결과가 부족해 일부 일반 기사로 채웠습니다."
             if errors:
                 return results, f"일부 소스 실패: {', '.join(errors[:2])}"
             return results, ""
@@ -644,7 +660,9 @@ def collect_items(
         crawled = crawl_feed(source, fetch_limit, history_pages=history_pages)
         if progress_callback:
             progress_callback(60, "키워드 필터 적용 중")
-        results = filter_by_keyword(crawled, keyword)[:limit]
+        filtered = filter_by_keyword(crawled, keyword)
+        results = filtered[:limit]
+        used_fallback_fill = False
         for item in results:
             item["source_name"] = source.name
             item["language"] = source.language
@@ -663,10 +681,26 @@ def collect_items(
             for item in results:
                 dedup[item.get("link", "") or item.get("title", "")] = item
             results = list(dedup.values())[:limit]
+        if fill_with_general and len(results) < limit:
+            seen = {item.get("link", "") or item.get("title", "") for item in results}
+            for item in crawled:
+                key = item.get("link", "") or item.get("title", "")
+                if key in seen:
+                    continue
+                item["source_name"] = source.name
+                item["language"] = source.language
+                item["source_key"] = source.key
+                seen.add(key)
+                results.append(item)
+                used_fallback_fill = True
+                if len(results) >= limit:
+                    break
         if progress_callback:
             progress_callback(100, "완료")
         if not results:
             return [], "조건에 맞는 결과가 없습니다. 키워드/소스를 바꿔 보세요."
+        if used_fallback_fill and keyword:
+            return results, "키워드 일치 결과가 부족해 일부 일반 기사로 채웠습니다."
         return results, ""
     except requests.RequestException as exc:
         return [], f"피드 요청 실패: {exc}"
@@ -722,6 +756,7 @@ def _run_job(job_id: str, params: dict) -> None:
             params["history_pages"],
             parse_article_html=params["parse_article_html"],
             include_archive=params["include_archive"],
+            fill_with_general=params["fill_with_general"],
             progress_callback=progress,
         )
         _set_job(
@@ -757,6 +792,7 @@ def index():
     history_pages = 3
     parse_article_html = False
     include_archive = True
+    fill_with_general = True
     error = ""
     results: list[dict] = []
 
@@ -766,6 +802,7 @@ def index():
         keyword = (request.form.get("keyword", "") or "").strip()
         parse_article_html = request.form.get("parse_article_html") == "1"
         include_archive = request.form.get("include_archive") == "1"
+        fill_with_general = request.form.get("fill_with_general") == "1"
         try:
             history_pages = int(request.form.get("history_pages", "3"))
         except ValueError:
@@ -785,6 +822,7 @@ def index():
             history_pages,
             parse_article_html=parse_article_html,
             include_archive=include_archive,
+            fill_with_general=fill_with_general,
         )
 
     return render_template(
@@ -798,6 +836,7 @@ def index():
         history_pages=history_pages,
         parse_article_html=parse_article_html,
         include_archive=include_archive,
+        fill_with_general=fill_with_general,
         error=error,
         results=results,
     )
@@ -811,6 +850,7 @@ def crawl_start():
     keyword = (request.form.get("keyword", "") or "").strip()
     parse_article_html = request.form.get("parse_article_html") == "1"
     include_archive = request.form.get("include_archive") == "1"
+    fill_with_general = request.form.get("fill_with_general") == "1"
 
     try:
         history_pages = int(request.form.get("history_pages", "3"))
@@ -847,6 +887,7 @@ def crawl_start():
                 "history_pages": history_pages,
                 "parse_article_html": parse_article_html,
                 "include_archive": include_archive,
+                "fill_with_general": fill_with_general,
             },
         ),
         daemon=True,
@@ -872,6 +913,7 @@ def export_excel():
     keyword = (request.form.get("keyword", "") or "").strip()
     parse_article_html = request.form.get("parse_article_html") == "1"
     include_archive = request.form.get("include_archive") == "1"
+    fill_with_general = request.form.get("fill_with_general") == "1"
     try:
         history_pages = int(request.form.get("history_pages", "3"))
     except ValueError:
@@ -892,6 +934,7 @@ def export_excel():
         history_pages,
         parse_article_html=parse_article_html,
         include_archive=include_archive,
+        fill_with_general=fill_with_general,
     )
     if error:
         return render_template(
@@ -905,6 +948,7 @@ def export_excel():
             history_pages=history_pages,
             parse_article_html=parse_article_html,
             include_archive=include_archive,
+            fill_with_general=fill_with_general,
             error=error,
             results=[],
         )
