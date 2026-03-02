@@ -18,6 +18,7 @@ try:
 except ImportError:  # pragma: no cover
     BeautifulSoup = None
 from openpyxl import Workbook
+from openpyxl.utils.exceptions import IllegalCharacterError
 import requests
 from flask import Flask, jsonify, redirect, render_template, request, send_file, session, url_for
 
@@ -1050,6 +1051,18 @@ def clean_text(raw: str | None) -> str:
     text = re.sub(r"<[^>]+>", " ", raw)
     text = unescape(text)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def sanitize_excel_text(raw: str | None) -> str:
+    if raw is None:
+        return ""
+    text = str(raw)
+    # Remove characters disallowed by Excel/OpenXML.
+    text = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F]", "", text)
+    # Excel cell text limit.
+    if len(text) > 32767:
+        text = text[:32767]
+    return text
 
 
 def parse_feed(xml_data: bytes | str, limit: int) -> list[dict]:
@@ -2163,21 +2176,28 @@ def export_excel():
             source = enabled_sources[selected_source]
             source_name = source.name
             language = source.language
-        ws.append(
-            [
-                language,
-                source_name,
-                item.get("title", ""),
-                item.get("published", ""),
-                item.get("summary", ""),
-                item.get("body_text", ""),
-                item.get("link", ""),
-                keyword,
-            ]
-        )
+        row = [
+            sanitize_excel_text(language),
+            sanitize_excel_text(source_name),
+            sanitize_excel_text(item.get("title", "")),
+            sanitize_excel_text(item.get("published", "")),
+            sanitize_excel_text(item.get("summary", "")),
+            sanitize_excel_text(item.get("body_text", "")),
+            sanitize_excel_text(item.get("link", "")),
+            sanitize_excel_text(keyword),
+        ]
+        ws.append(row)
 
     output = BytesIO()
-    wb.save(output)
+    try:
+        wb.save(output)
+    except IllegalCharacterError:
+        # Fallback: enforce sanitization again on all data rows.
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=8):
+            for cell in row:
+                cell.value = sanitize_excel_text(cell.value)
+        output = BytesIO()
+        wb.save(output)
     output.seek(0)
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
