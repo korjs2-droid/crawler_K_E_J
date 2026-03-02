@@ -1345,6 +1345,246 @@ SOURCES: dict[str, FeedSource] = {
         homepage="https://www.guancha.cn/",
         source_type="web",
     ),
+    "kr_customs_press_web": FeedSource(
+        key="kr_customs_press_web",
+        language="한국어",
+        name="관세청 보도자료 (Web)",
+        feed_url="https://www.customs.go.kr/kcs/na/ntt/selectNttList.do?mi=2894&bbsId=1368",
+        homepage="https://www.customs.go.kr/",
+        source_type="web",
+    ),
+    "kr_me_press_web": FeedSource(
+        key="kr_me_press_web",
+        language="한국어",
+        name="환경부 보도자료 (Web)",
+        feed_url="https://me.go.kr/home/web/board/list.do?boardMasterId=1&boardCategoryId=39&menuId=286",
+        homepage="https://me.go.kr/",
+        source_type="web",
+    ),
+    "kr_mfds_press_web": FeedSource(
+        key="kr_mfds_press_web",
+        language="한국어",
+        name="식품의약품안전처 보도자료 (Web)",
+        feed_url="https://www.mfds.go.kr/brd/m_99/list.do",
+        homepage="https://www.mfds.go.kr/",
+        source_type="web",
+    ),
+    "kr_fsc_press_web": FeedSource(
+        key="kr_fsc_press_web",
+        language="한국어",
+        name="금융위원회 보도자료 (Web)",
+        feed_url="https://www.fsc.go.kr/no010101",
+        homepage="https://www.fsc.go.kr/",
+        source_type="web",
+    ),
+    "kr_joongang_web": FeedSource(
+        key="kr_joongang_web",
+        language="한국어",
+        name="중앙일보 메인 (Web)",
+        feed_url="https://www.joongang.co.kr/",
+        homepage="https://www.joongang.co.kr/",
+        source_type="web",
+    ),
+    "jp_moj_press_web": FeedSource(
+        key="jp_moj_press_web",
+        language="日本語",
+        name="法務省 報道発表 (Web)",
+        feed_url="https://www.moj.go.jp/hisho/kouhou/",
+        homepage="https://www.moj.go.jp/",
+        source_type="web",
+    ),
+    "jp_npa_news_web": FeedSource(
+        key="jp_npa_news_web",
+        language="日本語",
+        name="警察庁 新着情報 (Web)",
+        feed_url="https://www.npa.go.jp/news/",
+        homepage="https://www.npa.go.jp/",
+        source_type="web",
+    ),
+    "jp_env_press_web": FeedSource(
+        key="jp_env_press_web",
+        language="日本語",
+        name="環境省 報道発表資料 (Web)",
+        feed_url="https://www.env.go.jp/press/",
+        homepage="https://www.env.go.jp/",
+        source_type="web",
+    ),
+    "jp_bunka_press_web": FeedSource(
+        key="jp_bunka_press_web",
+        language="日本語",
+        name="文化庁 お知らせ (Web)",
+        feed_url="https://www.bunka.go.jp/koho_hodo_oshirase/",
+        homepage="https://www.bunka.go.jp/",
+        source_type="web",
+    ),
+    "jp_jta_news_web": FeedSource(
+        key="jp_jta_news_web",
+        language="日本語",
+        name="観光庁 報道発表 (Web)",
+        feed_url="https://www.mlit.go.jp/kankocho/news/",
+        homepage="https://www.mlit.go.jp/kankocho/",
+        source_type="web",
+    ),
+    "zh_nhc_web": FeedSource(
+        key="zh_nhc_web",
+        language="中文",
+        name="国家卫健委 新闻发布 (Web)",
+        feed_url="http://www.nhc.gov.cn/xcs/yqtb/list_gzbd.shtml",
+        homepage="http://www.nhc.gov.cn/",
+        source_type="web",
+    ),
+    "zh_mofcom_web": FeedSource(
+        key="zh_mofcom_web",
+        language="中文",
+        name="商务部 新闻发布 (Web)",
+        feed_url="http://www.mofcom.gov.cn/article/xwfb/xwfyrth/",
+        homepage="http://www.mofcom.gov.cn/",
+        source_type="web",
+    ),
+    "zh_cctv_news_web": FeedSource(
+        key="zh_cctv_news_web",
+        language="中文",
+        name="央视网 新闻 (Web)",
+        feed_url="https://news.cctv.com/",
+        homepage="https://news.cctv.com/",
+        source_type="web",
+    ),
+    "zh_chinadaily_cn_web": FeedSource(
+        key="zh_chinadaily_cn_web",
+        language="中文",
+        name="中国日报中文网 (Web)",
+        feed_url="https://cn.chinadaily.com.cn/",
+        homepage="https://cn.chinadaily.com.cn/",
+        source_type="web",
+    ),
+    "zh_yicai_web": FeedSource(
+        key="zh_yicai_web",
+        language="中文",
+        name="第一财经 (Web)",
+        feed_url="https://www.yicai.com/",
+        homepage="https://www.yicai.com/",
+        source_type="web",
+    ),
+    "kr_kdi_news_web": FeedSource(
+        key="kr_kdi_news_web",
+        language="한국어",
+        name="KDI 연구원 소식 (Web)",
+        feed_url="https://www.kdi.re.kr/board/boardList?board_sn=100",
+        homepage="https://www.kdi.re.kr/",
+        source_type="web",
+    ),
+    "kr_bok_news_web": FeedSource(
+        key="kr_bok_news_web",
+        language="한국어",
+        name="한국은행 보도자료 (Web)",
+        feed_url="https://www.bok.or.kr/portal/bbs/B0000217/list.do?menuNo=200144",
+        homepage="https://www.bok.or.kr/",
+        source_type="web",
+    ),
+    "kr_kotra_news_web": FeedSource(
+        key="kr_kotra_news_web",
+        language="한국어",
+        name="KOTRA 뉴스 (Web)",
+        feed_url="https://news.kotra.or.kr/user/globalAllBbs/kotranews/list/2/globalBbsDataAllList.do",
+        homepage="https://www.kotra.or.kr/",
+        source_type="web",
+    ),
+    "kr_koica_news_web": FeedSource(
+        key="kr_koica_news_web",
+        language="한국어",
+        name="KOICA 보도자료 (Web)",
+        feed_url="https://www.koica.go.kr/koica_kr/1374/subview.do",
+        homepage="https://www.koica.go.kr/",
+        source_type="web",
+    ),
+    "kr_nhis_news_web": FeedSource(
+        key="kr_nhis_news_web",
+        language="한국어",
+        name="국민건강보험공단 보도자료 (Web)",
+        feed_url="https://www.nhis.or.kr/nhis/together/wbhaea01000m01.do",
+        homepage="https://www.nhis.or.kr/",
+        source_type="web",
+    ),
+    "jp_jetro_news_web": FeedSource(
+        key="jp_jetro_news_web",
+        language="日本語",
+        name="JETRO ニュース (Web)",
+        feed_url="https://www.jetro.go.jp/news/",
+        homepage="https://www.jetro.go.jp/",
+        source_type="web",
+    ),
+    "jp_jica_press_web": FeedSource(
+        key="jp_jica_press_web",
+        language="日本語",
+        name="JICA 報道発表 (Web)",
+        feed_url="https://www.jica.go.jp/information/press/",
+        homepage="https://www.jica.go.jp/",
+        source_type="web",
+    ),
+    "jp_caa_news_web": FeedSource(
+        key="jp_caa_news_web",
+        language="日本語",
+        name="消費者庁 新着情報 (Web)",
+        feed_url="https://www.caa.go.jp/notice/",
+        homepage="https://www.caa.go.jp/",
+        source_type="web",
+    ),
+    "jp_fsa_news_web": FeedSource(
+        key="jp_fsa_news_web",
+        language="日本語",
+        name="金融庁 報道発表資料 (Web)",
+        feed_url="https://www.fsa.go.jp/news/",
+        homepage="https://www.fsa.go.jp/",
+        source_type="web",
+    ),
+    "jp_jftc_press_web": FeedSource(
+        key="jp_jftc_press_web",
+        language="日本語",
+        name="公正取引委員会 報道発表 (Web)",
+        feed_url="https://www.jftc.go.jp/houdou/pressrelease/index.html",
+        homepage="https://www.jftc.go.jp/",
+        source_type="web",
+    ),
+    "zh_mnr_news_web": FeedSource(
+        key="zh_mnr_news_web",
+        language="中文",
+        name="自然资源部 新闻动态 (Web)",
+        feed_url="http://www.mnr.gov.cn/dt/",
+        homepage="http://www.mnr.gov.cn/",
+        source_type="web",
+    ),
+    "zh_nea_news_web": FeedSource(
+        key="zh_nea_news_web",
+        language="中文",
+        name="国家能源局 要闻 (Web)",
+        feed_url="http://www.nea.gov.cn/",
+        homepage="http://www.nea.gov.cn/",
+        source_type="web",
+    ),
+    "zh_samr_news_web": FeedSource(
+        key="zh_samr_news_web",
+        language="中文",
+        name="市场监管总局 新闻 (Web)",
+        feed_url="https://www.samr.gov.cn/xw/",
+        homepage="https://www.samr.gov.cn/",
+        source_type="web",
+    ),
+    "zh_mca_news_web": FeedSource(
+        key="zh_mca_news_web",
+        language="中文",
+        name="民政部 新闻动态 (Web)",
+        feed_url="https://www.mca.gov.cn/article/xw/",
+        homepage="https://www.mca.gov.cn/",
+        source_type="web",
+    ),
+    "zh_gmw_news_web": FeedSource(
+        key="zh_gmw_news_web",
+        language="中文",
+        name="光明网 新闻 (Web)",
+        feed_url="https://www.gmw.cn/",
+        homepage="https://www.gmw.cn/",
+        source_type="web",
+    ),
     "sns_medium_ai_tag": FeedSource(
         key="sns_medium_ai_tag",
         language="English",
@@ -1659,6 +1899,66 @@ def resolve_list_selectors(source_key: str) -> tuple[str, ...]:
         return (".news_li a", ".index_news a", "a")
     if source_key.startswith("zh_guancha_web"):
         return (".list-item a", ".module-list a", "a")
+    if source_key.startswith("kr_customs_press_web"):
+        return (".board_list a", ".list a", "a")
+    if source_key.startswith("kr_me_press_web"):
+        return (".board-list a", ".list a", "a")
+    if source_key.startswith("kr_mfds_press_web"):
+        return (".board-list a", ".list a", "a")
+    if source_key.startswith("kr_fsc_press_web"):
+        return (".board-list a", ".list a", "a")
+    if source_key.startswith("kr_joongang_web"):
+        return (".story_list a", ".headline a", "a")
+    if source_key.startswith("jp_moj_press_web"):
+        return (".list a", "#contents a", "a")
+    if source_key.startswith("jp_npa_news_web"):
+        return (".news a", ".list a", "a")
+    if source_key.startswith("jp_env_press_web"):
+        return (".news-list a", ".list a", "a")
+    if source_key.startswith("jp_bunka_press_web"):
+        return (".list a", "#contents a", "a")
+    if source_key.startswith("jp_jta_news_web"):
+        return (".list a", "#main a", "a")
+    if source_key.startswith("zh_nhc_web"):
+        return (".list a", ".center_list a", "a")
+    if source_key.startswith("zh_mofcom_web"):
+        return (".txtList_01 a", ".list a", "a")
+    if source_key.startswith("zh_cctv_news_web"):
+        return (".list a", ".newslist a", "a")
+    if source_key.startswith("zh_chinadaily_cn_web"):
+        return (".tw3_01_2 a", ".list a", "a")
+    if source_key.startswith("zh_yicai_web"):
+        return (".news-list a", ".m-txt-list a", "a")
+    if source_key.startswith("kr_kdi_news_web"):
+        return (".board-list a", ".list a", "a")
+    if source_key.startswith("kr_bok_news_web"):
+        return (".board-list a", ".list a", "a")
+    if source_key.startswith("kr_kotra_news_web"):
+        return (".list a", ".board-list a", "a")
+    if source_key.startswith("kr_koica_news_web"):
+        return (".board-list a", ".list a", "a")
+    if source_key.startswith("kr_nhis_news_web"):
+        return (".board_list a", ".list a", "a")
+    if source_key.startswith("jp_jetro_news_web"):
+        return (".news-list a", ".list a", "a")
+    if source_key.startswith("jp_jica_press_web"):
+        return (".news-list a", ".list a", "a")
+    if source_key.startswith("jp_caa_news_web"):
+        return (".list a", "#contents a", "a")
+    if source_key.startswith("jp_fsa_news_web"):
+        return (".list a", ".news-list a", "a")
+    if source_key.startswith("jp_jftc_press_web"):
+        return (".list a", "#main a", "a")
+    if source_key.startswith("zh_mnr_news_web"):
+        return (".list a", ".news_list a", "a")
+    if source_key.startswith("zh_nea_news_web"):
+        return (".news-list a", ".list a", "a")
+    if source_key.startswith("zh_samr_news_web"):
+        return (".list a", ".article-list a", "a")
+    if source_key.startswith("zh_mca_news_web"):
+        return (".list a", ".news-list a", "a")
+    if source_key.startswith("zh_gmw_news_web"):
+        return (".u-mainList a", ".m-newsList a", "a")
     return ("article a", "main a", "a")
 
 
