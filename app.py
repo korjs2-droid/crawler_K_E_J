@@ -48,6 +48,7 @@ LANGUAGE_OPTIONS: tuple[tuple[str, str], ...] = (
     ("한국어", "한국어"),
     ("English", "English"),
     ("日本語", "日本語"),
+    ("中文", "中文"),
 )
 
 
@@ -374,6 +375,27 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=07",
         homepage="https://news.sbs.co.kr/news/newsSection.do?sectionType=07",
     ),
+    "zh_bbc_chinese": FeedSource(
+        key="zh_bbc_chinese",
+        language="中文",
+        name="BBC 中文 RSS",
+        feed_url="https://feeds.bbci.co.uk/zhongwen/simp/rss.xml",
+        homepage="https://www.bbc.com/zhongwen/simp",
+    ),
+    "zh_wikinews": FeedSource(
+        key="zh_wikinews",
+        language="中文",
+        name="维基新闻中文 RSS",
+        feed_url="https://zh.wikinews.org/w/index.php?title=Special:%E6%96%B0%E9%97%BB%E8%AE%A2%E9%98%85&feed=rss",
+        homepage="https://zh.wikinews.org/",
+    ),
+    "zh_dw_chinese": FeedSource(
+        key="zh_dw_chinese",
+        language="中文",
+        name="DW 中文 RSS",
+        feed_url="https://rss.dw.com/rdf/rss-chi-all",
+        homepage="https://www.dw.com/zh/",
+    ),
 }
 
 ARTICLE_SELECTORS: dict[str, tuple[str, ...]] = {
@@ -652,6 +674,12 @@ def resolve_selectors(source_key: str) -> tuple[str, ...]:
         return ("section[name='articleBody']", ".StoryBodyCompanionColumn", "article", "main")
     if source_key.startswith("en_guardian_"):
         return ("#maincontent", "article", "main")
+    if source_key.startswith("zh_bbc_"):
+        return ("article", "main", "[data-component='text-block']")
+    if source_key.startswith("zh_wikinews"):
+        return ("#mw-content-text", "article", "main")
+    if source_key.startswith("zh_dw_"):
+        return ("article", "main", ".rich-text")
     return ARTICLE_SELECTORS.get(source_key, ("article", "main", "p"))
 
 
