@@ -33,6 +33,14 @@ class FeedSource:
 
 
 ALL_SOURCES_KEY = "all_sources"
+ALL_LANGUAGES_KEY = "all_languages"
+
+LANGUAGE_OPTIONS: tuple[tuple[str, str], ...] = (
+    (ALL_LANGUAGES_KEY, "전체"),
+    ("한국어", "한국어"),
+    ("English", "English"),
+    ("日本語", "日本語"),
+)
 
 
 SOURCES: dict[str, FeedSource] = {
@@ -63,6 +71,34 @@ SOURCES: dict[str, FeedSource] = {
         ),
         sitemap_urls=("https://www.meti.go.jp/sitemap.xml",),
     ),
+    "jp_mainichi_news": FeedSource(
+        key="jp_mainichi_news",
+        language="日本語",
+        name="毎日新聞 速報RSS",
+        feed_url="https://mainichi.jp/rss/etc/mainichi-flash.rss",
+        homepage="https://mainichi.jp/",
+    ),
+    "jp_yahoo_news": FeedSource(
+        key="jp_yahoo_news",
+        language="日本語",
+        name="Yahoo!ニュース 主要RSS",
+        feed_url="https://news.yahoo.co.jp/rss/topics/top-picks.xml",
+        homepage="https://news.yahoo.co.jp/",
+    ),
+    "jp_nhk_society": FeedSource(
+        key="jp_nhk_society",
+        language="日本語",
+        name="NHK NEWS 社会RSS",
+        feed_url="https://www3.nhk.or.jp/rss/news/cat1.xml",
+        homepage="https://www3.nhk.or.jp/news/",
+    ),
+    "jp_nhk_world": FeedSource(
+        key="jp_nhk_world",
+        language="日本語",
+        name="NHK NEWS 国際RSS",
+        feed_url="https://www3.nhk.or.jp/rss/news/cat6.xml",
+        homepage="https://www3.nhk.or.jp/news/",
+    ),
     "en_nasa_news": FeedSource(
         key="en_nasa_news",
         language="English",
@@ -71,13 +107,81 @@ SOURCES: dict[str, FeedSource] = {
         homepage="https://www.nasa.gov/news/all-news/",
         sitemap_urls=("https://www.nasa.gov/sitemap_index.xml", "https://www.nasa.gov/sitemap.xml"),
     ),
+    "en_bbc_world": FeedSource(
+        key="en_bbc_world",
+        language="English",
+        name="BBC World News RSS",
+        feed_url="https://feeds.bbci.co.uk/news/world/rss.xml",
+        homepage="https://www.bbc.com/news/world",
+    ),
+    "en_nyt_world": FeedSource(
+        key="en_nyt_world",
+        language="English",
+        name="NYTimes World RSS",
+        feed_url="https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+        homepage="https://www.nytimes.com/section/world",
+    ),
+    "en_guardian_world": FeedSource(
+        key="en_guardian_world",
+        language="English",
+        name="The Guardian World RSS",
+        feed_url="https://www.theguardian.com/world/rss",
+        homepage="https://www.theguardian.com/world",
+    ),
+    "en_npr_world": FeedSource(
+        key="en_npr_world",
+        language="English",
+        name="NPR World RSS",
+        feed_url="https://feeds.npr.org/1004/rss.xml",
+        homepage="https://www.npr.org/sections/world/",
+    ),
+    "kr_yna_news": FeedSource(
+        key="kr_yna_news",
+        language="한국어",
+        name="연합뉴스 RSS",
+        feed_url="https://www.yna.co.kr/rss/news.xml",
+        homepage="https://www.yna.co.kr/",
+    ),
+    "kr_kbs_news": FeedSource(
+        key="kr_kbs_news",
+        language="한국어",
+        name="KBS 뉴스 RSS",
+        feed_url="https://news.kbs.co.kr/rss/rss.xml",
+        homepage="https://news.kbs.co.kr/",
+    ),
+    "kr_mbc_news": FeedSource(
+        key="kr_mbc_news",
+        language="한국어",
+        name="MBC 뉴스 RSS",
+        feed_url="https://imnews.imbc.com/rss/news/news_00.xml",
+        homepage="https://imnews.imbc.com/",
+    ),
+    "kr_sbs_news": FeedSource(
+        key="kr_sbs_news",
+        language="한국어",
+        name="SBS 뉴스 RSS",
+        feed_url="https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=01",
+        homepage="https://news.sbs.co.kr/",
+    ),
 }
 
 ARTICLE_SELECTORS: dict[str, tuple[str, ...]] = {
     "kr_korea_policy": ("#newsView p", ".article_txt p", ".view_cont p", "article p"),
+    "kr_yna_news": ("#articleWrap p", ".story-news p", "article p"),
+    "kr_kbs_news": ("#cont_newstext p", ".detail-body p", "article p"),
+    "kr_mbc_news": ("#newsContent p", ".news_end p", "article p"),
+    "kr_sbs_news": (".main_text p", "#container p", "article p"),
     "jp_nhk_news": (".content--detail-body p", ".module--article-body p", "article p"),
     "jp_meti_news": ("#main p", ".main p", ".container p", "article p"),
+    "jp_mainichi_news": (".articledetail-body p", ".article-body p", "article p"),
+    "jp_yahoo_news": ("article p", "main p", ".sc-contents p"),
+    "jp_nhk_society": (".content--detail-body p", ".module--article-body p", "article p"),
+    "jp_nhk_world": (".content--detail-body p", ".module--article-body p", "article p"),
     "en_nasa_news": (".entry-content p", ".wysiwyg p", "article p"),
+    "en_bbc_world": ("[data-component='text-block'] p", "article p", "main p"),
+    "en_nyt_world": ("section[name='articleBody'] p", ".StoryBodyCompanionColumn p", "article p"),
+    "en_guardian_world": ("#maincontent p", "article p"),
+    "en_npr_world": ("#storytext p", ".storytext p", "article p"),
 }
 
 
@@ -356,6 +460,7 @@ def enrich_with_article_bodies(items: list[dict], max_items: int = 40) -> list[d
 
 def collect_items(
     selected_source: str,
+    selected_language: str,
     keyword: str,
     limit: int,
     history_pages: int = 1,
@@ -364,11 +469,18 @@ def collect_items(
 ) -> tuple[list[dict], str]:
     # Pull more items before filtering to reduce "too few results" cases.
     fetch_limit = min(200, max(limit, limit * 5 if keyword else limit))
+    target_sources = [
+        s
+        for s in SOURCES.values()
+        if selected_language == ALL_LANGUAGES_KEY or s.language == selected_language
+    ]
 
     if selected_source == ALL_SOURCES_KEY:
+        if not target_sources:
+            return [], "선택한 언어에 해당하는 소스가 없습니다."
         merged: list[dict] = []
         errors: list[str] = []
-        for source in SOURCES.values():
+        for source in target_sources:
             try:
                 crawled = crawl_feed(source, fetch_limit, history_pages=history_pages)
                 for item in crawled:
@@ -397,6 +509,8 @@ def collect_items(
     source = SOURCES.get(selected_source)
     if not source:
         return [], "지원하지 않는 소스입니다."
+    if selected_language != ALL_LANGUAGES_KEY and source.language != selected_language:
+        return [], "선택한 언어와 뉴스 소스가 일치하지 않습니다."
 
     try:
         crawled = crawl_feed(source, fetch_limit, history_pages=history_pages)
@@ -428,6 +542,7 @@ def collect_items(
 def index():
     source_keys = [ALL_SOURCES_KEY, *list(SOURCES.keys())]
     selected_source = source_keys[0]
+    selected_language = ALL_LANGUAGES_KEY
     limit = 12
     keyword = ""
     history_pages = 3
@@ -438,6 +553,7 @@ def index():
 
     if request.method == "POST":
         selected_source = request.form.get("source", source_keys[0])
+        selected_language = request.form.get("language", ALL_LANGUAGES_KEY)
         keyword = (request.form.get("keyword", "") or "").strip()
         parse_article_html = request.form.get("parse_article_html") == "1"
         include_archive = request.form.get("include_archive") == "1"
@@ -454,6 +570,7 @@ def index():
 
         results, error = collect_items(
             selected_source,
+            selected_language,
             keyword,
             limit,
             history_pages,
@@ -464,7 +581,9 @@ def index():
     return render_template(
         "index.html",
         sources=SOURCES,
+        language_options=LANGUAGE_OPTIONS,
         selected_source=selected_source,
+        selected_language=selected_language,
         limit=limit,
         keyword=keyword,
         history_pages=history_pages,
@@ -479,6 +598,7 @@ def index():
 def export_excel():
     source_keys = [ALL_SOURCES_KEY, *list(SOURCES.keys())]
     selected_source = request.form.get("source", source_keys[0])
+    selected_language = request.form.get("language", ALL_LANGUAGES_KEY)
     keyword = (request.form.get("keyword", "") or "").strip()
     parse_article_html = request.form.get("parse_article_html") == "1"
     include_archive = request.form.get("include_archive") == "1"
@@ -496,6 +616,7 @@ def export_excel():
 
     results, error = collect_items(
         selected_source,
+        selected_language,
         keyword,
         limit,
         history_pages,
@@ -506,7 +627,9 @@ def export_excel():
         return render_template(
             "index.html",
             sources=SOURCES,
+            language_options=LANGUAGE_OPTIONS,
             selected_source=selected_source,
+            selected_language=selected_language,
             limit=limit,
             keyword=keyword,
             history_pages=history_pages,
