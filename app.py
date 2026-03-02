@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from html import unescape
 from typing import Callable
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 try:
     from bs4 import BeautifulSoup
@@ -93,6 +93,48 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://news.yahoo.co.jp/rss/topics/top-picks.xml",
         homepage="https://news.yahoo.co.jp/",
     ),
+    "jp_yahoo_domestic": FeedSource(
+        key="jp_yahoo_domestic",
+        language="日本語",
+        name="Yahoo!ニュース 国内RSS",
+        feed_url="https://news.yahoo.co.jp/rss/topics/domestic.xml",
+        homepage="https://news.yahoo.co.jp/",
+    ),
+    "jp_yahoo_world": FeedSource(
+        key="jp_yahoo_world",
+        language="日本語",
+        name="Yahoo!ニュース 国際RSS",
+        feed_url="https://news.yahoo.co.jp/rss/topics/world.xml",
+        homepage="https://news.yahoo.co.jp/",
+    ),
+    "jp_yahoo_business": FeedSource(
+        key="jp_yahoo_business",
+        language="日本語",
+        name="Yahoo!ニュース 経済RSS",
+        feed_url="https://news.yahoo.co.jp/rss/topics/business.xml",
+        homepage="https://news.yahoo.co.jp/",
+    ),
+    "jp_yahoo_it": FeedSource(
+        key="jp_yahoo_it",
+        language="日本語",
+        name="Yahoo!ニュース IT・科学RSS",
+        feed_url="https://news.yahoo.co.jp/rss/topics/it.xml",
+        homepage="https://news.yahoo.co.jp/",
+    ),
+    "jp_yahoo_ent": FeedSource(
+        key="jp_yahoo_ent",
+        language="日本語",
+        name="Yahoo!ニュース エンタメRSS",
+        feed_url="https://news.yahoo.co.jp/rss/topics/entertainment.xml",
+        homepage="https://news.yahoo.co.jp/",
+    ),
+    "jp_yahoo_sports": FeedSource(
+        key="jp_yahoo_sports",
+        language="日本語",
+        name="Yahoo!ニュース スポーツRSS",
+        feed_url="https://news.yahoo.co.jp/rss/topics/sports.xml",
+        homepage="https://news.yahoo.co.jp/",
+    ),
     "jp_nhk_society": FeedSource(
         key="jp_nhk_society",
         language="日本語",
@@ -143,6 +185,34 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://feeds.bbci.co.uk/news/world/rss.xml",
         homepage="https://www.bbc.com/news/world",
     ),
+    "en_bbc_us": FeedSource(
+        key="en_bbc_us",
+        language="English",
+        name="BBC US & Canada RSS",
+        feed_url="https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml",
+        homepage="https://www.bbc.com/news/world/us_and_canada",
+    ),
+    "en_bbc_europe": FeedSource(
+        key="en_bbc_europe",
+        language="English",
+        name="BBC Europe RSS",
+        feed_url="https://feeds.bbci.co.uk/news/world/europe/rss.xml",
+        homepage="https://www.bbc.com/news/world/europe",
+    ),
+    "en_bbc_asia": FeedSource(
+        key="en_bbc_asia",
+        language="English",
+        name="BBC Asia RSS",
+        feed_url="https://feeds.bbci.co.uk/news/world/asia/rss.xml",
+        homepage="https://www.bbc.com/news/world/asia",
+    ),
+    "en_bbc_middle_east": FeedSource(
+        key="en_bbc_middle_east",
+        language="English",
+        name="BBC Middle East RSS",
+        feed_url="https://feeds.bbci.co.uk/news/world/middle_east/rss.xml",
+        homepage="https://www.bbc.com/news/world/middle_east",
+    ),
     "en_nyt_world": FeedSource(
         key="en_nyt_world",
         language="English",
@@ -150,12 +220,54 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
         homepage="https://www.nytimes.com/section/world",
     ),
+    "en_nyt_business": FeedSource(
+        key="en_nyt_business",
+        language="English",
+        name="NYTimes Business RSS",
+        feed_url="https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
+        homepage="https://www.nytimes.com/section/business",
+    ),
+    "en_nyt_tech": FeedSource(
+        key="en_nyt_tech",
+        language="English",
+        name="NYTimes Technology RSS",
+        feed_url="https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+        homepage="https://www.nytimes.com/section/technology",
+    ),
+    "en_nyt_science": FeedSource(
+        key="en_nyt_science",
+        language="English",
+        name="NYTimes Science RSS",
+        feed_url="https://rss.nytimes.com/services/xml/rss/nyt/Science.xml",
+        homepage="https://www.nytimes.com/section/science",
+    ),
     "en_guardian_world": FeedSource(
         key="en_guardian_world",
         language="English",
         name="The Guardian World RSS",
         feed_url="https://www.theguardian.com/world/rss",
         homepage="https://www.theguardian.com/world",
+    ),
+    "en_guardian_business": FeedSource(
+        key="en_guardian_business",
+        language="English",
+        name="The Guardian Business RSS",
+        feed_url="https://www.theguardian.com/uk/business/rss",
+        homepage="https://www.theguardian.com/uk/business",
+    ),
+    "en_guardian_tech": FeedSource(
+        key="en_guardian_tech",
+        language="English",
+        name="The Guardian Technology RSS",
+        feed_url="https://www.theguardian.com/uk/technology/rss",
+        homepage="https://www.theguardian.com/uk/technology",
+    ),
+    "en_guardian_science": FeedSource(
+        key="en_guardian_science",
+        language="English",
+        name="The Guardian Science RSS",
+        feed_url="https://www.theguardian.com/science/rss",
+        homepage="https://www.theguardian.com/science",
     ),
     "en_npr_world": FeedSource(
         key="en_npr_world",
@@ -233,6 +345,34 @@ SOURCES: dict[str, FeedSource] = {
         name="SBS 국제 RSS",
         feed_url="https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=04",
         homepage="https://news.sbs.co.kr/news/newsSection.do?sectionType=04",
+    ),
+    "kr_sbs_society": FeedSource(
+        key="kr_sbs_society",
+        language="한국어",
+        name="SBS 사회 RSS",
+        feed_url="https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=05",
+        homepage="https://news.sbs.co.kr/news/newsSection.do?sectionType=05",
+    ),
+    "kr_sbs_life": FeedSource(
+        key="kr_sbs_life",
+        language="한국어",
+        name="SBS 생활/문화 RSS",
+        feed_url="https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=08",
+        homepage="https://news.sbs.co.kr/news/newsSection.do?sectionType=08",
+    ),
+    "kr_sbs_health": FeedSource(
+        key="kr_sbs_health",
+        language="한국어",
+        name="SBS 건강 RSS",
+        feed_url="https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=14",
+        homepage="https://news.sbs.co.kr/news/newsSection.do?sectionType=14",
+    ),
+    "kr_sbs_sports": FeedSource(
+        key="kr_sbs_sports",
+        language="한국어",
+        name="SBS 스포츠 RSS",
+        feed_url="https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=07",
+        homepage="https://news.sbs.co.kr/news/newsSection.do?sectionType=07",
     ),
 }
 
@@ -342,34 +482,55 @@ def build_paged_url(base_url: str, page_number: int) -> str:
     return urlunparse(parsed._replace(query=urlencode(query)))
 
 
-def parse_sitemap_urls(xml_data: bytes | str) -> list[str]:
+def parse_sitemap_bundle(xml_data: bytes | str) -> tuple[list[str], list[str]]:
     root = ET.fromstring(xml_data)
     ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
     urls: list[str] = []
+    sitemap_urls: list[str] = []
     for loc in root.findall(".//sm:url/sm:loc", ns):
         if loc.text:
             urls.append(clean_text(loc.text))
-    return [u for u in urls if u]
+    for loc in root.findall(".//sm:sitemap/sm:loc", ns):
+        if loc.text:
+            sitemap_urls.append(clean_text(loc.text))
+    return ([u for u in urls if u], [u for u in sitemap_urls if u])
 
 
 def collect_archive_items(source: FeedSource, limit: int) -> list[dict]:
     headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
     candidates: list[str] = []
+    visited_sitemaps: set[str] = set()
+    to_visit: list[str] = list(source.sitemap_urls)
+    if not to_visit:
+        to_visit.append(urljoin(source.homepage, "/sitemap.xml"))
 
-    for sitemap_url in source.sitemap_urls:
+    max_sitemaps = 20
+    while to_visit and len(visited_sitemaps) < max_sitemaps:
+        sitemap_url = to_visit.pop(0)
+        if sitemap_url in visited_sitemaps:
+            continue
+        visited_sitemaps.add(sitemap_url)
+
         try:
             res = requests.get(sitemap_url, timeout=(8, TIMEOUT_SECONDS), headers=headers)
             res.raise_for_status()
-            urls = parse_sitemap_urls(res.content)
+            urls, nested_sitemaps = parse_sitemap_bundle(res.content)
+            for nested in nested_sitemaps[:8]:
+                if nested not in visited_sitemaps:
+                    to_visit.append(nested)
             # Keep only article-like links for each source.
             if source.key == "kr_korea_policy":
                 urls = [u for u in urls if "/news/" in u and ".do?" in u]
             elif source.key == "jp_nhk_news":
                 urls = [u for u in urls if "/news/html/" in u]
+            elif source.key.startswith("jp_nhk_"):
+                urls = [u for u in urls if "/news/html/" in u]
             elif source.key == "jp_meti_news":
                 urls = [u for u in urls if "/press/" in u or "/policy/" in u]
             elif source.key == "en_nasa_news":
                 urls = [u for u in urls if "/news-release/" in u or "/news/" in u]
+            elif source.key.startswith("en_bbc_"):
+                urls = [u for u in urls if "/news/" in u]
             candidates.extend(urls[: limit * 4])
         except (requests.RequestException, ET.ParseError):
             continue
@@ -478,6 +639,22 @@ def filter_by_keyword(items: list[dict], keyword: str) -> list[dict]:
     return result
 
 
+def resolve_selectors(source_key: str) -> tuple[str, ...]:
+    if source_key.startswith("kr_sbs_"):
+        return (".main_text", "#container", "article", "main")
+    if source_key.startswith("jp_nhk_"):
+        return (".content--detail-body", ".module--article-body", "article", "main")
+    if source_key.startswith("jp_yahoo_"):
+        return ("article", "main article", "main", "[class*='article']")
+    if source_key.startswith("en_bbc_"):
+        return ("[data-component='text-block']", "article", "main")
+    if source_key.startswith("en_nyt_"):
+        return ("section[name='articleBody']", ".StoryBodyCompanionColumn", "article", "main")
+    if source_key.startswith("en_guardian_"):
+        return ("#maincontent", "article", "main")
+    return ARTICLE_SELECTORS.get(source_key, ("article", "main", "p"))
+
+
 def extract_article_text(source_key: str, html: bytes | str) -> str:
     if BeautifulSoup is None:
         if isinstance(html, bytes):
@@ -489,7 +666,7 @@ def extract_article_text(source_key: str, html: bytes | str) -> str:
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "noscript", "header", "footer", "nav", "aside"]):
         tag.decompose()
-    selectors = ARTICLE_SELECTORS.get(source_key, ("article p", "main p", "p"))
+    selectors = resolve_selectors(source_key)
     jp_source = source_key.startswith("jp_")
 
     def text_score(text: str) -> float:
@@ -582,6 +759,7 @@ def collect_items(
     parse_article_html: bool = False,
     include_archive: bool = True,
     fill_with_general: bool = True,
+    min_per_source: int = 1,
     progress_callback: Callable[[int, str], None] | None = None,
 ) -> tuple[list[dict], str]:
     # Pull more items before filtering to reduce "too few results" cases.
@@ -596,6 +774,7 @@ def collect_items(
         if not target_sources:
             return [], "선택한 언어에 해당하는 소스가 없습니다."
         merged: list[dict] = []
+        per_source: dict[str, list[dict]] = {}
         errors: list[str] = []
         total_sources = len(target_sources)
         for idx, source in enumerate(target_sources, start=1):
@@ -609,20 +788,55 @@ def collect_items(
                     item["language"] = source.language
                     item["source_key"] = source.key
                 merged.extend(crawled)
+                per_source[source.key] = list(crawled)
             except requests.RequestException:
                 errors.append(source.name)
             except ET.ParseError:
                 errors.append(source.name)
             if include_archive:
-                merged.extend(collect_archive_items(source, min(fetch_limit, 80)))
+                archive_items = collect_archive_items(source, min(fetch_limit, 80))
+                for item in archive_items:
+                    item["source_name"] = source.name
+                    item["language"] = source.language
+                    item["source_key"] = source.key
+                merged.extend(archive_items)
+                per_source.setdefault(source.key, []).extend(archive_items)
         if progress_callback:
             progress_callback(80, "키워드 필터 적용 중")
 
+        target_min = max(0, min(min_per_source, 10))
+        results: list[dict] = []
+        chosen = set()
+
+        if target_min > 0 and keyword:
+            for source in target_sources:
+                source_items = per_source.get(source.key, [])
+                source_filtered = filter_by_keyword(source_items, keyword)
+                picked = 0
+                for item in source_filtered:
+                    key = item.get("link", "") or item.get("title", "")
+                    if key in chosen:
+                        continue
+                    chosen.add(key)
+                    results.append(item)
+                    picked += 1
+                    if picked >= target_min or len(results) >= limit:
+                        break
+                if len(results) >= limit:
+                    break
+
         filtered = filter_by_keyword(merged, keyword)
-        results = filtered[:limit]
+        for item in filtered:
+            key = item.get("link", "") or item.get("title", "")
+            if key in chosen:
+                continue
+            chosen.add(key)
+            results.append(item)
+            if len(results) >= limit:
+                break
+
         used_fallback_fill = False
         if fill_with_general and len(results) < limit:
-            chosen = {item.get("link", "") or item.get("title", "") for item in results}
             for item in merged:
                 key = item.get("link", "") or item.get("title", "")
                 if key in chosen:
@@ -757,6 +971,7 @@ def _run_job(job_id: str, params: dict) -> None:
             parse_article_html=params["parse_article_html"],
             include_archive=params["include_archive"],
             fill_with_general=params["fill_with_general"],
+            min_per_source=params["min_per_source"],
             progress_callback=progress,
         )
         _set_job(
@@ -793,6 +1008,7 @@ def index():
     parse_article_html = False
     include_archive = True
     fill_with_general = True
+    min_per_source = 1
     error = ""
     results: list[dict] = []
 
@@ -803,6 +1019,11 @@ def index():
         parse_article_html = request.form.get("parse_article_html") == "1"
         include_archive = request.form.get("include_archive") == "1"
         fill_with_general = request.form.get("fill_with_general") == "1"
+        try:
+            min_per_source = int(request.form.get("min_per_source", "1"))
+        except ValueError:
+            min_per_source = 1
+        min_per_source = max(0, min(10, min_per_source))
         try:
             history_pages = int(request.form.get("history_pages", "3"))
         except ValueError:
@@ -823,6 +1044,7 @@ def index():
             parse_article_html=parse_article_html,
             include_archive=include_archive,
             fill_with_general=fill_with_general,
+            min_per_source=min_per_source,
         )
 
     return render_template(
@@ -837,6 +1059,7 @@ def index():
         parse_article_html=parse_article_html,
         include_archive=include_archive,
         fill_with_general=fill_with_general,
+        min_per_source=min_per_source,
         error=error,
         results=results,
     )
@@ -851,6 +1074,11 @@ def crawl_start():
     parse_article_html = request.form.get("parse_article_html") == "1"
     include_archive = request.form.get("include_archive") == "1"
     fill_with_general = request.form.get("fill_with_general") == "1"
+    try:
+        min_per_source = int(request.form.get("min_per_source", "1"))
+    except ValueError:
+        min_per_source = 1
+    min_per_source = max(0, min(10, min_per_source))
 
     try:
         history_pages = int(request.form.get("history_pages", "3"))
@@ -888,6 +1116,7 @@ def crawl_start():
                 "parse_article_html": parse_article_html,
                 "include_archive": include_archive,
                 "fill_with_general": fill_with_general,
+                "min_per_source": min_per_source,
             },
         ),
         daemon=True,
@@ -915,6 +1144,11 @@ def export_excel():
     include_archive = request.form.get("include_archive") == "1"
     fill_with_general = request.form.get("fill_with_general") == "1"
     try:
+        min_per_source = int(request.form.get("min_per_source", "1"))
+    except ValueError:
+        min_per_source = 1
+    min_per_source = max(0, min(10, min_per_source))
+    try:
         history_pages = int(request.form.get("history_pages", "3"))
     except ValueError:
         history_pages = 3
@@ -935,6 +1169,7 @@ def export_excel():
         parse_article_html=parse_article_html,
         include_archive=include_archive,
         fill_with_general=fill_with_general,
+        min_per_source=min_per_source,
     )
     if error:
         return render_template(
@@ -949,6 +1184,7 @@ def export_excel():
             parse_article_html=parse_article_html,
             include_archive=include_archive,
             fill_with_general=fill_with_general,
+            min_per_source=min_per_source,
             error=error,
             results=[],
         )
