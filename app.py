@@ -756,12 +756,14 @@ def collect_items(
     keyword: str,
     limit: int,
     history_pages: int = 1,
-    parse_article_html: bool = False,
+    parse_article_html: bool = True,
     include_archive: bool = True,
     fill_with_general: bool = True,
     min_per_source: int = 1,
     progress_callback: Callable[[int, str], None] | None = None,
 ) -> tuple[list[dict], str]:
+    # Keep full article-body extraction always enabled for KR/EN/JP output quality.
+    parse_article_html = True
     # Pull more items before filtering to reduce "too few results" cases.
     fetch_limit = min(600, max(limit * 3, limit * 20 if keyword else limit * 6))
     target_sources = [
@@ -1005,7 +1007,7 @@ def index():
     limit = 12
     keyword = ""
     history_pages = 3
-    parse_article_html = False
+    parse_article_html = True
     include_archive = True
     fill_with_general = True
     min_per_source = 1
@@ -1016,7 +1018,7 @@ def index():
         selected_source = request.form.get("source", source_keys[0])
         selected_language = request.form.get("language", ALL_LANGUAGES_KEY)
         keyword = (request.form.get("keyword", "") or "").strip()
-        parse_article_html = request.form.get("parse_article_html") == "1"
+        parse_article_html = True
         include_archive = request.form.get("include_archive") == "1"
         fill_with_general = request.form.get("fill_with_general") == "1"
         try:
@@ -1071,7 +1073,7 @@ def crawl_start():
     selected_source = request.form.get("source", source_keys[0])
     selected_language = request.form.get("language", ALL_LANGUAGES_KEY)
     keyword = (request.form.get("keyword", "") or "").strip()
-    parse_article_html = request.form.get("parse_article_html") == "1"
+    parse_article_html = True
     include_archive = request.form.get("include_archive") == "1"
     fill_with_general = request.form.get("fill_with_general") == "1"
     try:
@@ -1140,7 +1142,7 @@ def export_excel():
     selected_source = request.form.get("source", source_keys[0])
     selected_language = request.form.get("language", ALL_LANGUAGES_KEY)
     keyword = (request.form.get("keyword", "") or "").strip()
-    parse_article_html = request.form.get("parse_article_html") == "1"
+    parse_article_html = True
     include_archive = request.form.get("include_archive") == "1"
     fill_with_general = request.form.get("fill_with_general") == "1"
     try:
