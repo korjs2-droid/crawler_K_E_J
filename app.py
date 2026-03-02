@@ -1555,7 +1555,7 @@ def export_excel():
             fill_with_general=fill_with_general,
             min_per_source=min_per_source,
         )
-    if error:
+    if error and not results:
         return render_template(
             "index.html",
             sources=SOURCES,
