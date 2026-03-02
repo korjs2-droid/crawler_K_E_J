@@ -5,6 +5,7 @@ import hmac
 import os
 import re
 import threading
+import time
 import uuid
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ from flask import Flask, jsonify, redirect, render_template, request, send_file,
 
 app = Flask(__name__)
 TIMEOUT_SECONDS = int(os.getenv("FEED_READ_TIMEOUT", "20"))
+SOURCE_BUDGET_SECONDS = float(os.getenv("SOURCE_BUDGET_SECONDS", "8"))
 app.secret_key = os.getenv("SECRET_KEY", "change-this-secret-key")
 APP_PASSWORD = os.getenv("WEB_PASSWORD", "news1234")
 CRAWL_JOBS: dict[str, dict] = {}
@@ -1342,6 +1344,16 @@ def build_paged_url(base_url: str, page_number: int) -> str:
     return urlunparse(parsed._replace(query=urlencode(query)))
 
 
+def source_deadline(seconds: float) -> float | None:
+    if seconds <= 0:
+        return None
+    return time.monotonic() + seconds
+
+
+def deadline_exceeded(deadline: float | None) -> bool:
+    return deadline is not None and time.monotonic() > deadline
+
+
 def resolve_list_selectors(source_key: str) -> tuple[str, ...]:
     if source_key.startswith("kr_seoul_news_web"):
         return ("#list_view li a", ".news_list a", "a")
@@ -1416,12 +1428,16 @@ def extract_links_from_list(source: FeedSource, html: bytes | str, page_url: str
     return results
 
 
-def crawl_web_source(source: FeedSource, limit: int, history_pages: int = 1) -> list[dict]:
+def crawl_web_source(
+    source: FeedSource, limit: int, history_pages: int = 1, deadline: float | None = None
+) -> list[dict]:
     headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
     max_pages = max(1, min(10, history_pages))
     candidates: list[dict] = []
     seen_links: set[str] = set()
     for page in range(1, max_pages + 1):
+        if deadline_exceeded(deadline):
+            break
         page_url = build_paged_url(source.feed_url, page)
         try:
             resp = requests.get(page_url, timeout=(8, TIMEOUT_SECONDS), headers=headers)
@@ -1443,6 +1459,8 @@ def crawl_web_source(source: FeedSource, limit: int, history_pages: int = 1) -> 
 
     items: list[dict] = []
     for cand in candidates:
+        if deadline_exceeded(deadline):
+            break
         link = cand.get("link", "")
         title = cand.get("title", "")
         body = fetch_article_body(source.key, link)
@@ -1476,7 +1494,7 @@ def parse_sitemap_bundle(xml_data: bytes | str) -> tuple[list[str], list[str]]:
     return ([u for u in urls if u], [u for u in sitemap_urls if u])
 
 
-def collect_archive_items(source: FeedSource, limit: int) -> list[dict]:
+def collect_archive_items(source: FeedSource, limit: int, deadline: float | None = None) -> list[dict]:
     if source.source_type == "web":
         return []
 
@@ -1489,6 +1507,8 @@ def collect_archive_items(source: FeedSource, limit: int) -> list[dict]:
 
     max_sitemaps = 20
     while to_visit and len(visited_sitemaps) < max_sitemaps:
+        if deadline_exceeded(deadline):
+            break
         sitemap_url = to_visit.pop(0)
         if sitemap_url in visited_sitemaps:
             continue
@@ -1527,6 +1547,8 @@ def collect_archive_items(source: FeedSource, limit: int) -> list[dict]:
 
     items: list[dict] = []
     for url in unique_urls:
+        if deadline_exceeded(deadline):
+            break
         body = fetch_article_body(source.key, url)
         if not body:
             continue
@@ -1548,9 +1570,11 @@ def collect_archive_items(source: FeedSource, limit: int) -> list[dict]:
     return items
 
 
-def crawl_feed(source: FeedSource, limit: int, history_pages: int = 1) -> list[dict]:
+def crawl_feed(
+    source: FeedSource, limit: int, history_pages: int = 1, deadline: float | None = None
+) -> list[dict]:
     if source.source_type == "web":
-        return crawl_web_source(source, limit, history_pages)
+        return crawl_web_source(source, limit, history_pages, deadline=deadline)
 
     headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
     urls = (source.feed_url, *source.fallback_urls)
@@ -1561,11 +1585,15 @@ def crawl_feed(source: FeedSource, limit: int, history_pages: int = 1) -> list[d
 
     for url in urls:
         for page_number in range(1, max_pages + 1):
+            if deadline_exceeded(deadline):
+                raise requests.Timeout("source_budget_exceeded")
             paged_url = build_paged_url(url, page_number)
             page_items: list[dict] = []
             page_ok = False
             for attempt in range(2):
                 try:
+                    if deadline_exceeded(deadline):
+                        raise requests.Timeout("source_budget_exceeded")
                     # Use separate connect/read timeout so slow feeds are more tolerant.
                     response = requests.get(
                         paged_url,
@@ -1799,23 +1827,27 @@ def collect_items(
         errors: list[str] = []
         total_sources = len(target_sources)
         for idx, source in enumerate(target_sources, start=1):
+            deadline = source_deadline(SOURCE_BUDGET_SECONDS)
             if progress_callback:
                 pct = int(5 + (idx - 1) / total_sources * 70)
                 progress_callback(pct, f"{source.name} 수집 중")
             try:
-                crawled = crawl_feed(source, fetch_limit, history_pages=history_pages)
+                crawled = crawl_feed(source, fetch_limit, history_pages=history_pages, deadline=deadline)
                 for item in crawled:
                     item["source_name"] = source.name
                     item["language"] = source.language
                     item["source_key"] = source.key
                 merged.extend(crawled)
                 per_source[source.key] = list(crawled)
+            except requests.Timeout:
+                errors.append(f"{source.name}(시간초과)")
+                continue
             except requests.RequestException:
                 errors.append(source.name)
             except ET.ParseError:
                 errors.append(source.name)
             if include_archive:
-                archive_items = collect_archive_items(source, min(fetch_limit, 80))
+                archive_items = collect_archive_items(source, min(fetch_limit, 80), deadline=deadline)
                 for item in archive_items:
                     item["source_name"] = source.name
                     item["language"] = source.language
@@ -1890,9 +1922,10 @@ def collect_items(
         return [], "선택한 언어와 뉴스 소스가 일치하지 않습니다."
 
     try:
+        deadline = source_deadline(SOURCE_BUDGET_SECONDS)
         if progress_callback:
             progress_callback(20, f"{source.name} 피드 수집 중")
-        crawled = crawl_feed(source, fetch_limit, history_pages=history_pages)
+        crawled = crawl_feed(source, fetch_limit, history_pages=history_pages, deadline=deadline)
         if progress_callback:
             progress_callback(60, "키워드 필터 적용 중")
         filtered = filter_by_keyword(crawled, keyword)
@@ -1909,7 +1942,7 @@ def collect_items(
         if include_archive and len(results) < limit:
             if progress_callback:
                 progress_callback(88, "아카이브 수집 중")
-            archive_items = collect_archive_items(source, min(fetch_limit, 80))
+            archive_items = collect_archive_items(source, min(fetch_limit, 80), deadline=deadline)
             archive_items = filter_by_keyword(archive_items, keyword)
             results.extend(archive_items)
             dedup: dict[str, dict] = {}
