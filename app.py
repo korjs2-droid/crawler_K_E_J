@@ -396,6 +396,118 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://rss.dw.com/rdf/rss-chi-all",
         homepage="https://www.dw.com/zh/",
     ),
+    "kr_naver_d2": FeedSource(
+        key="kr_naver_d2",
+        language="한국어",
+        name="NAVER D2 기술블로그 Atom",
+        feed_url="https://d2.naver.com/d2.atom",
+        homepage="https://d2.naver.com/home",
+    ),
+    "kr_kakao_tech": FeedSource(
+        key="kr_kakao_tech",
+        language="한국어",
+        name="Kakao Tech Blog RSS",
+        feed_url="https://tech.kakao.com/feed/",
+        homepage="https://tech.kakao.com/blog/",
+    ),
+    "kr_woowahan_tech": FeedSource(
+        key="kr_woowahan_tech",
+        language="한국어",
+        name="우아한형제들 기술블로그 RSS",
+        feed_url="https://techblog.woowahan.com/feed/",
+        homepage="https://techblog.woowahan.com/",
+    ),
+    "kr_ruliweb_dev": FeedSource(
+        key="kr_ruliweb_dev",
+        language="한국어",
+        name="Ruliweb 개발정보 RSS",
+        feed_url="https://bbs.ruliweb.com/news/board/1005/rss",
+        homepage="https://bbs.ruliweb.com/news/board/1005",
+    ),
+    "jp_qiita_popular": FeedSource(
+        key="jp_qiita_popular",
+        language="日本語",
+        name="Qiita 人気記事 Atom",
+        feed_url="https://qiita.com/popular-items/feed.atom",
+        homepage="https://qiita.com/",
+    ),
+    "jp_qiita_trend": FeedSource(
+        key="jp_qiita_trend",
+        language="日本語",
+        name="Qiita トレンド Atom",
+        feed_url="https://qiita.com/trend/feed.atom",
+        homepage="https://qiita.com/trend",
+    ),
+    "jp_classmethod_dev": FeedSource(
+        key="jp_classmethod_dev",
+        language="日本語",
+        name="DevelopersIO RSS",
+        feed_url="https://dev.classmethod.jp/feed/",
+        homepage="https://dev.classmethod.jp/",
+    ),
+    "jp_publickey": FeedSource(
+        key="jp_publickey",
+        language="日本語",
+        name="Publickey RSS",
+        feed_url="https://www.publickey1.jp/atom.xml",
+        homepage="https://www.publickey1.jp/",
+    ),
+    "en_arxiv_cs_ai": FeedSource(
+        key="en_arxiv_cs_ai",
+        language="English",
+        name="arXiv cs.AI RSS",
+        feed_url="https://export.arxiv.org/rss/cs.AI",
+        homepage="https://arxiv.org/list/cs.AI/recent",
+    ),
+    "en_hn_newest": FeedSource(
+        key="en_hn_newest",
+        language="English",
+        name="Hacker News Newest RSS",
+        feed_url="https://hnrss.org/newest",
+        homepage="https://news.ycombinator.com/newest",
+    ),
+    "en_stackoverflow_blog": FeedSource(
+        key="en_stackoverflow_blog",
+        language="English",
+        name="Stack Overflow Blog RSS",
+        feed_url="https://stackoverflow.blog/feed/",
+        homepage="https://stackoverflow.blog/",
+    ),
+    "en_github_blog": FeedSource(
+        key="en_github_blog",
+        language="English",
+        name="GitHub Blog RSS",
+        feed_url="https://github.blog/feed/",
+        homepage="https://github.blog/",
+    ),
+    "zh_sspai": FeedSource(
+        key="zh_sspai",
+        language="中文",
+        name="少数派 RSS",
+        feed_url="https://sspai.com/feed",
+        homepage="https://sspai.com/",
+    ),
+    "zh_ruanyifeng": FeedSource(
+        key="zh_ruanyifeng",
+        language="中文",
+        name="阮一峰博客 Atom",
+        feed_url="https://www.ruanyifeng.com/blog/atom.xml",
+        homepage="https://www.ruanyifeng.com/blog/",
+    ),
+    "zh_infoq": FeedSource(
+        key="zh_infoq",
+        language="中文",
+        name="InfoQ 中文 RSS",
+        feed_url="https://www.infoq.cn/feed",
+        homepage="https://www.infoq.cn/",
+    ),
+    "zh_ithome": FeedSource(
+        key="zh_ithome",
+        language="中文",
+        name="IT之家 RSS",
+        feed_url="https://www.ithome.com/rss/",
+        homepage="https://www.ithome.com/",
+    ),
 }
 
 ARTICLE_SELECTORS: dict[str, tuple[str, ...]] = {
@@ -701,6 +813,22 @@ def resolve_selectors(source_key: str) -> tuple[str, ...]:
         return ("#mw-content-text", "article", "main")
     if source_key.startswith("zh_dw_"):
         return ("article", "main", ".rich-text")
+    if source_key.startswith("kr_naver_d2") or source_key.startswith("kr_kakao_tech") or source_key.startswith("kr_woowahan_tech"):
+        return ("article", ".entry-content", ".post-content", "main")
+    if source_key.startswith("kr_ruliweb_"):
+        return ("#board_read", ".view_content", "article", "main")
+    if source_key.startswith("jp_qiita_"):
+        return ("article", ".it-MdContent", "main")
+    if source_key.startswith("jp_classmethod_") or source_key.startswith("jp_publickey"):
+        return ("article", ".entry-content", "#main", "main")
+    if source_key.startswith("en_arxiv_"):
+        return ("#content", "main", "article")
+    if source_key.startswith("en_hn_"):
+        return ("main", "body")
+    if source_key.startswith("en_stackoverflow_") or source_key.startswith("en_github_blog"):
+        return ("article", ".post-content", "main")
+    if source_key.startswith("zh_sspai") or source_key.startswith("zh_ruanyifeng") or source_key.startswith("zh_infoq") or source_key.startswith("zh_ithome"):
+        return ("article", ".article-content", ".post-content", "main")
     return ARTICLE_SELECTORS.get(source_key, ("article", "main", "p"))
 
 
