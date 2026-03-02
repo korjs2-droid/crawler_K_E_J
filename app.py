@@ -36,12 +36,14 @@ class FeedSource:
     name: str
     feed_url: str
     homepage: str
+    source_type: str = "rss"
     fallback_urls: tuple[str, ...] = ()
     sitemap_urls: tuple[str, ...] = ()
 
 
 ALL_SOURCES_KEY = "all_sources"
 ALL_LANGUAGES_KEY = "all_languages"
+ALL_TYPES_KEY = "all_types"
 
 LANGUAGE_OPTIONS: tuple[tuple[str, str], ...] = (
     (ALL_LANGUAGES_KEY, "전체"),
@@ -50,6 +52,17 @@ LANGUAGE_OPTIONS: tuple[tuple[str, str], ...] = (
     ("日本語", "日本語"),
     ("中文", "中文"),
 )
+SOURCE_TYPE_OPTIONS: tuple[tuple[str, str], ...] = (
+    (ALL_TYPES_KEY, "전체"),
+    ("rss", "RSS/Atom"),
+    ("web", "Web 목록"),
+)
+
+DISABLED_SOURCES: set[str] = set()
+
+
+def get_enabled_sources() -> dict[str, FeedSource]:
+    return {k: v for k, v in SOURCES.items() if k not in DISABLED_SOURCES}
 
 
 SOURCES: dict[str, FeedSource] = {
@@ -609,6 +622,70 @@ SOURCES: dict[str, FeedSource] = {
         feed_url="https://www.cna.com.tw/rss/aall.xml",
         homepage="https://www.cna.com.tw/",
     ),
+    "kr_seoul_news_web": FeedSource(
+        key="kr_seoul_news_web",
+        language="한국어",
+        name="서울시 보도자료 (Web)",
+        feed_url="https://www.seoul.go.kr/news/news_report.do",
+        homepage="https://www.seoul.go.kr/",
+        source_type="web",
+    ),
+    "kr_gov24_notice_web": FeedSource(
+        key="kr_gov24_notice_web",
+        language="한국어",
+        name="정부24 공지사항 (Web)",
+        feed_url="https://www.gov.kr/portal/ntcItm",
+        homepage="https://www.gov.kr/",
+        source_type="web",
+    ),
+    "jp_prime_minister_web": FeedSource(
+        key="jp_prime_minister_web",
+        language="日本語",
+        name="首相官邸 トピックス (Web)",
+        feed_url="https://www.kantei.go.jp/jp/headline/index.html",
+        homepage="https://www.kantei.go.jp/",
+        source_type="web",
+    ),
+    "jp_cao_news_web": FeedSource(
+        key="jp_cao_news_web",
+        language="日本語",
+        name="内閣府 新着情報 (Web)",
+        feed_url="https://www.cao.go.jp/",
+        homepage="https://www.cao.go.jp/",
+        source_type="web",
+    ),
+    "en_govuk_news_web": FeedSource(
+        key="en_govuk_news_web",
+        language="English",
+        name="UK GOV News (Web)",
+        feed_url="https://www.gov.uk/search/news-and-communications",
+        homepage="https://www.gov.uk/",
+        source_type="web",
+    ),
+    "en_who_news_web": FeedSource(
+        key="en_who_news_web",
+        language="English",
+        name="WHO Newsroom (Web)",
+        feed_url="https://www.who.int/news-room/releases",
+        homepage="https://www.who.int/",
+        source_type="web",
+    ),
+    "zh_gov_cn_web": FeedSource(
+        key="zh_gov_cn_web",
+        language="中文",
+        name="中国政府网 要闻 (Web)",
+        feed_url="https://www.gov.cn/yaowen/",
+        homepage="https://www.gov.cn/",
+        source_type="web",
+    ),
+    "zh_xinhuanet_web": FeedSource(
+        key="zh_xinhuanet_web",
+        language="中文",
+        name="新华网 要闻 (Web)",
+        feed_url="http://www.news.cn/",
+        homepage="http://www.news.cn/",
+        source_type="web",
+    ),
 }
 
 ARTICLE_SELECTORS: dict[str, tuple[str, ...]] = {
@@ -735,6 +812,102 @@ def build_paged_url(base_url: str, page_number: int) -> str:
     return urlunparse(parsed._replace(query=urlencode(query)))
 
 
+def resolve_list_selectors(source_key: str) -> tuple[str, ...]:
+    if source_key.startswith("kr_seoul_news_web"):
+        return ("#list_view li a", ".news_list a", "a")
+    if source_key.startswith("kr_gov24_notice_web"):
+        return (".board-list a", ".table a", "a")
+    if source_key.startswith("jp_prime_minister_web"):
+        return (".section a", ".content a", "a")
+    if source_key.startswith("jp_cao_news_web"):
+        return ("#main a", ".main a", "a")
+    if source_key.startswith("en_govuk_news_web"):
+        return (".gem-c-document-list a", ".govuk-link", "a")
+    if source_key.startswith("en_who_news_web"):
+        return (".list-view--item a", ".sf-content-block a", "a")
+    if source_key.startswith("zh_gov_cn_web"):
+        return (".list a", ".news_box a", "a")
+    if source_key.startswith("zh_xinhuanet_web"):
+        return (".yaowen a", ".newsList a", "a")
+    return ("article a", "main a", "a")
+
+
+def extract_links_from_list(source: FeedSource, html: bytes | str, page_url: str) -> list[dict]:
+    soup = BeautifulSoup(html, "html.parser") if BeautifulSoup is not None else None
+    if soup is None:
+        return []
+    selectors = resolve_list_selectors(source.key)
+    results: list[dict] = []
+    seen: set[str] = set()
+    home_host = urlparse(source.homepage).netloc
+    for selector in selectors:
+        for elem in soup.select(selector):
+            href = elem.get("href") if elem.has_attr("href") else ""
+            if not href:
+                link_tag = elem.find("a")
+                href = link_tag.get("href") if link_tag else ""
+            if not href:
+                continue
+            url = urljoin(page_url, href.strip())
+            host = urlparse(url).netloc
+            if home_host and host and home_host not in host and host not in home_host:
+                continue
+            if url in seen:
+                continue
+            seen.add(url)
+            title = clean_text(elem.get_text(" ", strip=True))
+            if len(title) < 2:
+                continue
+            results.append({"link": url, "title": title})
+    return results
+
+
+def crawl_web_source(source: FeedSource, limit: int, history_pages: int = 1) -> list[dict]:
+    headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
+    max_pages = max(1, min(10, history_pages))
+    candidates: list[dict] = []
+    seen_links: set[str] = set()
+    for page in range(1, max_pages + 1):
+        page_url = build_paged_url(source.feed_url, page)
+        try:
+            resp = requests.get(page_url, timeout=(8, TIMEOUT_SECONDS), headers=headers)
+            resp.raise_for_status()
+            links = extract_links_from_list(source, resp.content, page_url)
+            for item in links:
+                link = item.get("link", "")
+                if not link or link in seen_links:
+                    continue
+                seen_links.add(link)
+                candidates.append(item)
+                if len(candidates) >= limit * 4:
+                    break
+        except requests.RequestException:
+            if page == 1:
+                break
+        if len(candidates) >= limit * 4:
+            break
+
+    items: list[dict] = []
+    for cand in candidates:
+        link = cand.get("link", "")
+        title = cand.get("title", "")
+        body = fetch_article_body(source.key, link)
+        if not body:
+            continue
+        items.append(
+            {
+                "title": title,
+                "link": link,
+                "published": "",
+                "summary": body[:320],
+                "body_text": body,
+            }
+        )
+        if len(items) >= limit:
+            break
+    return items
+
+
 def parse_sitemap_bundle(xml_data: bytes | str) -> tuple[list[str], list[str]]:
     root = ET.fromstring(xml_data)
     ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
@@ -750,6 +923,9 @@ def parse_sitemap_bundle(xml_data: bytes | str) -> tuple[list[str], list[str]]:
 
 
 def collect_archive_items(source: FeedSource, limit: int) -> list[dict]:
+    if source.source_type == "web":
+        return []
+
     headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
     candidates: list[str] = []
     visited_sitemaps: set[str] = set()
@@ -819,6 +995,9 @@ def collect_archive_items(source: FeedSource, limit: int) -> list[dict]:
 
 
 def crawl_feed(source: FeedSource, limit: int, history_pages: int = 1) -> list[dict]:
+    if source.source_type == "web":
+        return crawl_web_source(source, limit, history_pages)
+
     headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
     urls = (source.feed_url, *source.fallback_urls)
     errors: list[str] = []
@@ -1026,6 +1205,7 @@ def enrich_with_article_bodies(items: list[dict], max_items: int | None = None) 
 def collect_items(
     selected_source: str,
     selected_language: str,
+    selected_type: str,
     keyword: str,
     limit: int,
     history_pages: int = 1,
@@ -1039,10 +1219,12 @@ def collect_items(
     parse_article_html = True
     # Pull more items before filtering to reduce "too few results" cases.
     fetch_limit = min(600, max(limit * 3, limit * 20 if keyword else limit * 6))
+    enabled_sources = get_enabled_sources()
     target_sources = [
         s
-        for s in SOURCES.values()
-        if selected_language == ALL_LANGUAGES_KEY or s.language == selected_language
+        for s in enabled_sources.values()
+        if (selected_language == ALL_LANGUAGES_KEY or s.language == selected_language)
+        and (selected_type == ALL_TYPES_KEY or s.source_type == selected_type)
     ]
 
     if selected_source == ALL_SOURCES_KEY:
@@ -1137,7 +1319,7 @@ def collect_items(
             return [], f"전체 소스 요청 실패: {', '.join(errors[:3])}"
         return [], "조건에 맞는 결과가 없습니다. 키워드/소스를 바꿔 보세요."
 
-    source = SOURCES.get(selected_source)
+    source = enabled_sources.get(selected_source)
     if not source:
         return [], "지원하지 않는 소스입니다."
     if selected_language != ALL_LANGUAGES_KEY and source.language != selected_language:
@@ -1235,6 +1417,7 @@ def _set_job(job_id: str, payload: dict) -> None:
 def build_query_signature(
     selected_source: str,
     selected_language: str,
+    selected_type: str,
     keyword: str,
     limit: int,
     history_pages: int,
@@ -1246,6 +1429,7 @@ def build_query_signature(
         [
             selected_source,
             selected_language,
+            selected_type,
             keyword.strip().lower(),
             str(limit),
             str(history_pages),
@@ -1264,6 +1448,7 @@ def _run_job(job_id: str, params: dict) -> None:
         results, error = collect_items(
             params["selected_source"],
             params["selected_language"],
+            params["selected_type"],
             params["keyword"],
             params["limit"],
             params["history_pages"],
@@ -1298,9 +1483,11 @@ def _run_job(job_id: str, params: dict) -> None:
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    source_keys = [ALL_SOURCES_KEY, *list(SOURCES.keys())]
+    enabled_sources = get_enabled_sources()
+    source_keys = [ALL_SOURCES_KEY, *list(enabled_sources.keys())]
     selected_source = source_keys[0]
     selected_language = ALL_LANGUAGES_KEY
+    selected_type = ALL_TYPES_KEY
     limit = 12
     keyword = ""
     history_pages = 3
@@ -1314,6 +1501,7 @@ def index():
     if request.method == "POST":
         selected_source = request.form.get("source", source_keys[0])
         selected_language = request.form.get("language", ALL_LANGUAGES_KEY)
+        selected_type = request.form.get("source_type", ALL_TYPES_KEY)
         keyword = (request.form.get("keyword", "") or "").strip()
         parse_article_html = True
         include_archive = request.form.get("include_archive") == "1"
@@ -1337,6 +1525,7 @@ def index():
         results, error = collect_items(
             selected_source,
             selected_language,
+            selected_type,
             keyword,
             limit,
             history_pages,
@@ -1348,10 +1537,12 @@ def index():
 
     return render_template(
         "index.html",
-        sources=SOURCES,
+        sources=enabled_sources,
         language_options=LANGUAGE_OPTIONS,
+        source_type_options=SOURCE_TYPE_OPTIONS,
         selected_source=selected_source,
         selected_language=selected_language,
+        selected_type=selected_type,
         limit=limit,
         keyword=keyword,
         history_pages=history_pages,
@@ -1366,9 +1557,11 @@ def index():
 
 @app.route("/crawl/start", methods=["POST"])
 def crawl_start():
-    source_keys = [ALL_SOURCES_KEY, *list(SOURCES.keys())]
+    enabled_sources = get_enabled_sources()
+    source_keys = [ALL_SOURCES_KEY, *list(enabled_sources.keys())]
     selected_source = request.form.get("source", source_keys[0])
     selected_language = request.form.get("language", ALL_LANGUAGES_KEY)
+    selected_type = request.form.get("source_type", ALL_TYPES_KEY)
     keyword = (request.form.get("keyword", "") or "").strip()
     parse_article_html = True
     include_archive = request.form.get("include_archive") == "1"
@@ -1393,6 +1586,7 @@ def crawl_start():
     signature = build_query_signature(
         selected_source=selected_source,
         selected_language=selected_language,
+        selected_type=selected_type,
         keyword=keyword,
         limit=limit,
         history_pages=history_pages,
@@ -1420,6 +1614,7 @@ def crawl_start():
             {
                 "selected_source": selected_source,
                 "selected_language": selected_language,
+                "selected_type": selected_type,
                 "keyword": keyword,
                 "limit": limit,
                 "history_pages": history_pages,
@@ -1449,12 +1644,14 @@ def health_sources():
     run = request.args.get("run", "0") == "1"
     timeout = int(request.args.get("timeout", "6"))
     timeout = max(2, min(15, timeout))
-    limit = int(request.args.get("limit", str(len(SOURCES))))
-    limit = max(1, min(len(SOURCES), limit))
+    enabled_sources = get_enabled_sources()
+    total_enabled = len(enabled_sources)
+    limit = int(request.args.get("limit", str(total_enabled if total_enabled else 1)))
+    limit = max(1, min(total_enabled if total_enabled else 1, limit))
 
     rows: list[dict] = []
     summary = {"ok": 0, "fail": 0, "total": limit}
-    selected = list(SOURCES.values())[:limit]
+    selected = list(enabled_sources.values())[:limit]
 
     if run:
         headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
@@ -1464,7 +1661,8 @@ def health_sources():
             try:
                 resp = requests.get(source.feed_url, timeout=(5, timeout), headers=headers)
                 resp.raise_for_status()
-                parse_feed(resp.content, 1)
+                if source.source_type == "rss":
+                    parse_feed(resp.content, 1)
                 status = "OK"
                 detail = f"HTTP {resp.status_code}"
             except Exception as exc:  # pragma: no cover
@@ -1492,14 +1690,49 @@ def health_sources():
         limit=limit,
         rows=rows,
         summary=summary,
+        disabled_count=len(DISABLED_SOURCES),
     )
+
+
+@app.route("/health/sources/disable_failed", methods=["POST"])
+def health_disable_failed():
+    timeout = int(request.form.get("timeout", "6"))
+    timeout = max(2, min(15, timeout))
+    limit = int(request.form.get("limit", str(len(get_enabled_sources()) or 1)))
+    enabled_sources = get_enabled_sources()
+    limit = max(1, min(len(enabled_sources) if enabled_sources else 1, limit))
+    selected = list(enabled_sources.values())[:limit]
+    headers = {"User-Agent": "GovNewsCrawler/1.0 (+https://example.local)"}
+    failed: list[str] = []
+
+    for source in selected:
+        try:
+            resp = requests.get(source.feed_url, timeout=(5, timeout), headers=headers)
+            resp.raise_for_status()
+            if source.source_type == "rss":
+                parse_feed(resp.content, 1)
+        except Exception:  # pragma: no cover
+            failed.append(source.key)
+
+    for key in failed:
+        DISABLED_SOURCES.add(key)
+
+    return redirect(url_for("health_sources", run=1, timeout=timeout, limit=limit))
+
+
+@app.route("/health/sources/enable_all", methods=["POST"])
+def health_enable_all():
+    DISABLED_SOURCES.clear()
+    return redirect(url_for("health_sources"))
 
 
 @app.route("/export", methods=["POST"])
 def export_excel():
-    source_keys = [ALL_SOURCES_KEY, *list(SOURCES.keys())]
+    enabled_sources = get_enabled_sources()
+    source_keys = [ALL_SOURCES_KEY, *list(enabled_sources.keys())]
     selected_source = request.form.get("source", source_keys[0])
     selected_language = request.form.get("language", ALL_LANGUAGES_KEY)
+    selected_type = request.form.get("source_type", ALL_TYPES_KEY)
     keyword = (request.form.get("keyword", "") or "").strip()
     parse_article_html = True
     include_archive = request.form.get("include_archive") == "1"
@@ -1523,6 +1756,7 @@ def export_excel():
     signature = build_query_signature(
         selected_source=selected_source,
         selected_language=selected_language,
+        selected_type=selected_type,
         keyword=keyword,
         limit=limit,
         history_pages=history_pages,
@@ -1547,6 +1781,7 @@ def export_excel():
         results, error = collect_items(
             selected_source,
             selected_language,
+            selected_type,
             keyword,
             limit,
             history_pages,
@@ -1558,10 +1793,12 @@ def export_excel():
     if error and not results:
         return render_template(
             "index.html",
-            sources=SOURCES,
+            sources=enabled_sources,
             language_options=LANGUAGE_OPTIONS,
+            source_type_options=SOURCE_TYPE_OPTIONS,
             selected_source=selected_source,
             selected_language=selected_language,
+            selected_type=selected_type,
             limit=limit,
             keyword=keyword,
             history_pages=history_pages,
@@ -1592,8 +1829,8 @@ def export_excel():
     for item in results:
         source_name = item.get("source_name", "")
         language = item.get("language", "")
-        if selected_source in SOURCES:
-            source = SOURCES[selected_source]
+        if selected_source in enabled_sources:
+            source = enabled_sources[selected_source]
             source_name = source.name
             language = source.language
         ws.append(
