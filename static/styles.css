@@ -183,3 +183,21 @@ button.secondary {
   margin-bottom: 0.5rem;
   color: var(--muted);
 }
+
+.producer {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.producer img {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
